@@ -1,0 +1,13 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<script>
+    var sock = new WebSocket("ws://localhost:4000");
+    sock.onopen = function(){  
+            console.log('<p class="event">Socket Status: '+socket.readyState+' (open)');
+            sock.onmessage = function(m) { console.log("Received:", m.data); }
+            sock.send("Hello!\n")
+    }
+</script>
+</head>
+</html>
