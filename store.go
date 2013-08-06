@@ -42,6 +42,6 @@ func (m *MemoryStore) GetClient(UID string) (*socket, error) {
     return client, nil
 }
 
-func (m *MemoryStore) GetCount(UID string) (int, error) {
+func (m *MemoryStore) GetCount() (int, error) {
     return m.clientCount, nil
 }

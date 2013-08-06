@@ -69,5 +69,26 @@ func TestGetClient(t *testing.T) {
     if(val != true) {
         t.Errorf("GetClient Test failed, could not access client TEST1's data")
     }
-    
+
+    _, err1 := Store.GetClient("N/A");
+    if err1 == nil {
+        t.Errorf("GetClient Test failed, non-existant client failed to throw error")
+    }
+    Store.Remove("TEST1")
+}
+
+func TestGetCount(t *testing.T) {
+    Store.Save("TEST3", &socket{nil, make(chan bool)})
+
+    count, _ := Store.GetCount()
+    if count != 1 {
+        t.Errorf("GetCount Test failed. ClientCount = %v, expected %v", count, 1)
+    }
+
+    Store.Save("TEST4", &socket{nil, make(chan bool)})
+    count, _ = Store.GetCount()
+    if count != 2 {
+        t.Errorf("GetCount Test failed. ClientCount = %v, expected %v", count, 2 )
+    }
+
 }
