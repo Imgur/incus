@@ -33,7 +33,7 @@ func (m *MemoryStore) Remove(UID string) (bool, error) {
     return true, nil
 }
 
-func (m *MemoryStore) GetClient(UID string) (*socket, error) {
+func (m *MemoryStore) Client(UID string) (*socket, error) {
     var client, exists = m.clients[UID]
     
     if(!exists) {
@@ -42,6 +42,10 @@ func (m *MemoryStore) GetClient(UID string) (*socket, error) {
     return client, nil
 }
 
-func (m *MemoryStore) GetCount(UID string) (int, error) {
+func (m *MemoryStore) Clients() (map[string] *socket, error) {
+    return m.clients, nil
+}
+
+func (m *MemoryStore) Count() (int, error) {
     return m.clientCount, nil
 }

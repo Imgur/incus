@@ -56,18 +56,18 @@ func TestRemove(t *testing.T) {
     }
 }
 
-func TestGetClient(t *testing.T) {
+func TestClient(t *testing.T) {
     Store.Save("TEST1", &socket{nil, make(chan bool)})
     
-    client, err := Store.GetClient("TEST1");
+    client, err := Store.Client("TEST1");
     if err != nil {
-        t.Errorf("GetClient Test failed, client TEST1 should exist")
+        t.Errorf("Client Test failed, client TEST1 should exist")
     }
     go func() { client.done <- true }()
     val := <- client.done
     
     if(val != true) {
-        t.Errorf("GetClient Test failed, could not access client TEST1's data")
+        t.Errorf("Client Test failed, could not access client TEST1's data")
     }
     
 }
