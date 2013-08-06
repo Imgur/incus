@@ -5,5 +5,5 @@ func main() {
     initLogger()
     initAppListner()
     initSocketListener()
-    initStore()
+    //initStore()
 }
