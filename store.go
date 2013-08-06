@@ -10,15 +10,25 @@ type MemoryStore struct {
 var Store = MemoryStore{make(map[string]*socket), 0}
 
 func (m *MemoryStore) Save(UID string, s *socket) (bool, error) {
+    _, exists := m.clients[UID]
+    
     m.clients[UID] = s;
-    m.clientCount++
+    
+    if(!exists) {  // if same UID connects again, don't up the clientCount
+        m.clientCount++
+    }
     
     return true, nil
 }
 
 func (m *MemoryStore) Remove(UID string) (bool, error) {
+    _, exists := m.clients[UID]
+    
     delete(m.clients, UID)
-    m.clientCount--
+    
+    if(exists) { // only subtract if the client was in the store in the first place.
+        m.clientCount--
+    }
     
     return true, nil
 }
