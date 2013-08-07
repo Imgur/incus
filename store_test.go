@@ -3,7 +3,7 @@ package main
 import "testing"
 
 func TestSave(t *testing.T) {
-    Store.Save("TEST", &socket{nil, make(chan bool)})
+    Store.Save("TEST", &Socket{nil, "TEST", make(chan *Message), make(chan bool)})
     
     _, exists := Store.clients["TEST"]
     if(!exists) {
@@ -14,12 +14,12 @@ func TestSave(t *testing.T) {
         t.Errorf("Save Test failed, clientCount = %v, want %v", Store.clientCount, 1)
     }
     
-    Store.Save("TEST1", &socket{nil, make(chan bool)})
+    Store.Save("TEST1", &Socket{nil, "TEST1", make(chan *Message), make(chan bool)})
     if(Store.clientCount != 2) {
         t.Errorf("Save Test failed, clientCount = %v, want %v", Store.clientCount, 2)
     }
     
-    Store.Save("TEST1", &socket{nil, make(chan bool)})
+    Store.Save("TEST1", &Socket{nil, "TEST1", make(chan *Message), make(chan bool)})
     if(Store.clientCount != 2) {
         t.Errorf("Save Test failed, clientCount = %v, want %v", Store.clientCount, 2)
     }
@@ -57,7 +57,7 @@ func TestRemove(t *testing.T) {
 }
 
 func TestClient(t *testing.T) {
-    Store.Save("TEST1", &socket{nil, make(chan bool)})
+    Store.Save("TEST1", &Socket{nil, "TEST1", make(chan *Message), make(chan bool)})
     
     client, err := Store.Client("TEST1");
     if err != nil {

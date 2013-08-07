@@ -1,63 +1,145 @@
 package main
 
 import (
-    "fmt"
-    "io"
     "log"
     "net/http"
+    "strings"
+    "errors"
 
     "code.google.com/p/go.net/websocket"
 )
 
 const listenAddr = "localhost:4000"
 
-func initSocketListener() error {
+func initSocketListener() {
+    http.HandleFunc("/", rootHandler)
     http.Handle("/socket", websocket.Handler(Connect))
-    return http.ListenAndServe(listenAddr, nil)
+    
+    err := http.ListenAndServe(listenAddr, nil)
+    if err != nil {
+        log.Fatal(err)
+    }
 }
 
-type socket struct {
-    io.ReadWriter
+type Socket struct {
+    ws   *websocket.Conn
+    UID  string
+    buff chan *Message
     done chan bool
 }
 
-func (s socket) Close() error {
-    s.done <- true
+type Message struct {
+    Name string
+    Body map[string]interface{}
+    Time int64
+}
+
+func (this Message) Handle() {
+    log.Printf("Handling message fo type %s\n", this.Name)
+    
+    if this.Name == "MessageUser" {
+        UID, ok := this.Body["UID"].(string)
+        if !ok {
+            return
+        }
+        
+        rec, err := Store.Client(UID)
+        if err != nil {
+            return 
+        }
+        
+        rec.buff <- &this
+    }
+}
+
+func (this Socket) Close() error {
+    Store.Remove(this.UID)
+    this.done <- true
+    
     return nil
 }
 
 func Connect(ws *websocket.Conn) {
-    s := socket{ws, make(chan bool)}
-    go match(s)
-    <-s.done
+    sock := Socket{ws, "", make(chan *Message, 1000), make(chan bool)}
+    
+    log.Printf("Connected via %s\n", ws.RemoteAddr());
+    if err := Authenticate(&sock); err != nil {
+        log.Printf("Error: %s\n", err.Error())
+        return
+    }
+
+    go listenForMessages(&sock)
+    go listenForWrites(&sock)
+    
+    <-sock.done
+    sock.Close()
 }
 
-var partner = make(chan io.ReadWriteCloser)
+func Authenticate(sock *Socket) error {
+    var message Message
+    err := websocket.JSON.Receive(sock.ws, &message)
 
-func match(c io.ReadWriteCloser) {
-    fmt.Fprint(c, "Waiting for a partner...")
-    select {
-    case partner <- c:
-        // now handled by the other goroutine
-    case p := <-partner:
-        chat(p, c)
+    log.Println(message.Name)
+    if err != nil {
+        return err
+    }
+    
+    if strings.ToLower(message.Name) != "handshake" {
+        return errors.New("Error: Handshake Expected.\n")
+    }
+    
+    UID, ok := message.Body["UID"].(string)
+    if !ok {
+        return errors.New("Error on Handshake: Bad Input.\n")
+    }
+    
+    log.Printf("saving UID as %s", UID)
+    sock.UID = UID
+    Store.Save(UID, sock)
+    log.Printf("saving UID as %s", sock.UID)
+    
+    return nil
+}
+
+func listenForMessages(sock *Socket) {
+    
+    for {
+        
+        select {
+            case <- sock.done:
+                sock.Close()
+                return
+            
+            default:
+                var message Message
+                err := websocket.JSON.Receive(sock.ws, &message)
+                log.Println("Waiting...\n")
+                if err != nil {
+                    log.Printf("Error: %s\n", err.Error())
+                    
+                    sock.Close()
+                    return 
+                }
+                log.Println(message)
+                
+                message.Handle()
+        }
+        
     }
 }
 
-func chat(a, b io.ReadWriteCloser) {
-    fmt.Fprintln(a, "Found one! Say hi.")
-    fmt.Fprintln(b, "Found one! Say hi.")
-    errc := make(chan error, 1)
-    go cp(a, b, errc)
-    go cp(b, a, errc)
-    if err := <-errc; err != nil {
-        log.Println(err)
+func listenForWrites(sock *Socket) {
+    for {
+        select {
+            case message := <-sock.buff:
+                log.Println("Send:", message)
+                if err := websocket.JSON.Send(sock.ws, message); err != nil {
+                    sock.Close()
+                }
+                
+            case <-sock.done:
+                sock.Close()
+                return
+        }
     }
-    a.Close()
-    b.Close()
-}
-
-func cp(w io.Writer, r io.Reader, errc chan<- error) {
-    _, err := io.Copy(w, r)
-    errc <- err
 }
