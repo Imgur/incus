@@ -3,13 +3,13 @@ package main
 import "errors"
 
 type MemoryStore struct {
-    clients     map[string] *socket
+    clients     map[string] *Socket
     clientCount int
 }
 
-var Store = MemoryStore{make(map[string]*socket), 0}
+var Store = MemoryStore{make(map[string]*Socket), 0}
 
-func (m *MemoryStore) Save(UID string, s *socket) (bool, error) {
+func (m *MemoryStore) Save(UID string, s *Socket) (bool, error) {
     _, exists := m.clients[UID]
     
     m.clients[UID] = s;
@@ -33,7 +33,7 @@ func (m *MemoryStore) Remove(UID string) (bool, error) {
     return true, nil
 }
 
-func (m *MemoryStore) GetClient(UID string) (*socket, error) {
+func (m *MemoryStore) Client(UID string) (*Socket, error) {
     var client, exists = m.clients[UID]
     
     if(!exists) {
@@ -42,6 +42,10 @@ func (m *MemoryStore) GetClient(UID string) (*socket, error) {
     return client, nil
 }
 
-func (m *MemoryStore) GetCount() (int, error) {
+func (m *MemoryStore) Clients() (map[string] *Socket, error) {
+    return m.clients, nil
+}
+
+func (m *MemoryStore) Count() (int, error) {
     return m.clientCount, nil
 }

@@ -3,7 +3,7 @@ package main
 import "testing"
 
 func TestSave(t *testing.T) {
-    Store.Save("TEST", &socket{nil, make(chan bool)})
+    Store.Save("TEST", &Socket{nil, "TEST", make(chan *Message), make(chan bool)})
     
     _, exists := Store.clients["TEST"]
     if(!exists) {
@@ -14,12 +14,12 @@ func TestSave(t *testing.T) {
         t.Errorf("Save Test failed, clientCount = %v, want %v", Store.clientCount, 1)
     }
     
-    Store.Save("TEST1", &socket{nil, make(chan bool)})
+    Store.Save("TEST1", &Socket{nil, "TEST1", make(chan *Message), make(chan bool)})
     if(Store.clientCount != 2) {
         t.Errorf("Save Test failed, clientCount = %v, want %v", Store.clientCount, 2)
     }
     
-    Store.Save("TEST1", &socket{nil, make(chan bool)})
+    Store.Save("TEST1", &Socket{nil, "TEST1", make(chan *Message), make(chan bool)})
     if(Store.clientCount != 2) {
         t.Errorf("Save Test failed, clientCount = %v, want %v", Store.clientCount, 2)
     }
@@ -56,18 +56,18 @@ func TestRemove(t *testing.T) {
     }
 }
 
-func TestGetClient(t *testing.T) {
-    Store.Save("TEST1", &socket{nil, make(chan bool)})
+func TestClient(t *testing.T) {
+    Store.Save("TEST1", &Socket{nil, "TEST1", make(chan *Message), make(chan bool)})
     
-    client, err := Store.GetClient("TEST1");
+    client, err := Store.Client("TEST1");
     if err != nil {
-        t.Errorf("GetClient Test failed, client TEST1 should exist")
+        t.Errorf("Client Test failed, client TEST1 should exist")
     }
     go func() { client.done <- true }()
     val := <- client.done
     
     if(val != true) {
-        t.Errorf("GetClient Test failed, could not access client TEST1's data")
+        t.Errorf("Client Test failed, could not access client TEST1's data")
     }
 
     _, err1 := Store.GetClient("N/A");
