@@ -10,7 +10,7 @@ type Message struct {
     Time int64
 }
 
-func (this Message) Handle(sock *Socket) {
+func (this Message) FromSocket(sock *Socket) {
     log.Printf("Handling message fo type %s\n", this.Name)
     
     if this.Name == "MessageUser" {
