@@ -11,18 +11,17 @@ type Storage struct {
     StorageType string
 }
 
-var Store Storage
-
-func (this Storage) initStore() {
-    this.memory = MemoryStore{make(map[string]*Socket), 0}
-    this.redis  = RedisStore{
+func initStore(Config *Configuration) Storage{
+    var Store = Storage{
+        MemoryStore{make(map[string]*Socket), 0},
+        RedisStore{
             ClientsKey,
             
             "localhost",
             6379,
             
             redisPool{
-                connections: []*redis.Client{},
+                connections: make([] *redis.Client, 6),
                 maxIdle:     6,
                 
                 connFn:      func () (*redis.Client, error) {
@@ -38,7 +37,12 @@ func (this Storage) initStore() {
                 },
             },
             
-        }
+        },
+        
+        "redis",
+    }
+    
+    return Store
 }
 
 func (this *Storage) Save(UID string, s *Socket) (error) {

@@ -11,68 +11,19 @@ import (
 
 const listenAddr = "localhost:4000"
 
-func initSocketListener() {
-    http.HandleFunc("/", rootHandler)
-    http.Handle("/socket", websocket.Handler(Connect))
-    
-    err := http.ListenAndServe(listenAddr, nil)
-    if err != nil {
-        log.Fatal(err)
-    }
-}
-
 type Socket struct {
-    ws   *websocket.Conn
-    UID  string
-    buff chan *Message
-    done chan bool
-}
-
-type Message struct {
-    Name string
-    Body map[string]interface{}
-    Time int64
-}
-
-func (this Message) Handle() {
-    log.Printf("Handling message fo type %s\n", this.Name)
-    
-    if this.Name == "MessageUser" {
-        UID, ok := this.Body["UID"].(string)
-        if !ok {
-            return
-        }
-        
-        rec, err := Store.Client(UID)
-        if err != nil {
-            return 
-        }
-        
-        rec.buff <- &this
-    }
+    ws     *websocket.Conn
+    UID    string
+    buff   chan *Message
+    done   chan bool
+    Server *Server
 }
 
 func (this Socket) Close() error {
-    Store.Remove(this.UID)
+    this.Server.Store.Remove(this.UID)
     this.done <- true
     
     return nil
-}
-
-func Connect(ws *websocket.Conn) {
-    sock := Socket{ws, "", make(chan *Message, 1000), make(chan bool)}
-    
-    log.Printf("Connected via %s\n", ws.RemoteAddr());
-    if err := Authenticate(&sock); err != nil {
-        log.Printf("Error: %s\n", err.Error())
-        return
-    }
-
-    go listenForMessages(&sock)
-    go listenForWrites(&sock)
-    
-    <-sock.done
-    sock.Close()
 }
 
 func Authenticate(sock *Socket) error {
@@ -95,7 +46,8 @@ func Authenticate(sock *Socket) error {
     
     log.Printf("saving UID as %s", UID)
     sock.UID = UID
-    Store.Save(UID, sock)
+    sock.Server.Store.Save(UID, sock)
+    
     log.Printf("saving UID as %s", sock.UID)
     
     return nil
@@ -122,7 +74,7 @@ func listenForMessages(sock *Socket) {
                 }
                 log.Println(message)
                 
-                message.Handle()
+                go message.FromSocket(sock)
         }
         
     }
