@@ -4,7 +4,7 @@ import (
     //"errors"
     "log"
     
-    "github.com/garyburd/redigo/redis"
+    "menteslibres.net/gosexy/redis"
 )
 
 const ClientsKey = "SocketClients"
@@ -28,25 +28,20 @@ type RedisStore struct {
 //}
 
 func (this *RedisStore) Save(UID string, s *Socket) (bool, error) {
-    //this.Conn.Do("PING")
-    c, err := redis.Dial("tcp", ":6379")
+    client = redis.New()
+    err = client.Connect("localhost", "6379")
+
     if err != nil {
-        log.Printf("WTF %s", err.Error())
+        log.Fatalf("Connect failed: %s\n", err.Error())
+        return
     }
-    exists, _ := c.Do("Hexists", redis.Args{}.Add(ClientsKey).Add(UID)...)
-    
-    log.Println(redis.Args{}.Add(ClientsKey).Add(UID).Add(*s))
-    
-    _, err1 := c.Do("Hset", redis.Args{}.Add(ClientsKey).Add(UID).Add(*s))
+ 
+    _, err1 := client.SAdd(ClientsKey, UID)
     if err1 != nil {
         log.Printf("%s\n", err1.Error())
     }
     
-    exists, _ = redis.Values(c.Do("Hexists", redis.Args{}.Add(ClientsKey).Add(UID)...))
-    
-    log.Println(exists)
-    
-    c.Close()
+    client.Close()
     return true, nil
 }
 //
