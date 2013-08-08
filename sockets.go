@@ -34,26 +34,26 @@ type Message struct {
     Time int64
 }
 
-//func (this Message) Handle() {
-//    log.Printf("Handling message fo type %s\n", this.Name)
-//    
-//    if this.Name == "MessageUser" {
-//        UID, ok := this.Body["UID"].(string)
-//        if !ok {
-//            return
-//        }
-//        
-//        rec, err := Store.Client(UID)
-//        if err != nil {
-//            return 
-//        }
-//        
-//        rec.buff <- &this
-//    }
-//}
+func (this Message) Handle() {
+    log.Printf("Handling message fo type %s\n", this.Name)
+    
+    if this.Name == "MessageUser" {
+        UID, ok := this.Body["UID"].(string)
+        if !ok {
+            return
+        }
+        
+        rec, err := Store.Client(UID)
+        if err != nil {
+            return 
+        }
+        
+        rec.buff <- &this
+    }
+}
 
 func (this Socket) Close() error {
-    //Store.Remove(this.UID)
+    Store.Remove(this.UID)
     this.done <- true
     
     return nil
@@ -68,8 +68,8 @@ func Connect(ws *websocket.Conn) {
         return
     }
 
-    //go listenForMessages(&sock)
-    //go listenForWrites(&sock)
+    go listenForMessages(&sock)
+    go listenForWrites(&sock)
     
     <-sock.done
     sock.Close()
@@ -100,46 +100,46 @@ func Authenticate(sock *Socket) error {
     
     return nil
 }
-//
-//func listenForMessages(sock *Socket) {
-//    
-//    for {
-//        
-//        select {
-//            case <- sock.done:
-//                sock.Close()
-//                return
-//            
-//            default:
-//                var message Message
-//                err := websocket.JSON.Receive(sock.ws, &message)
-//                log.Println("Waiting...\n")
-//                if err != nil {
-//                    log.Printf("Error: %s\n", err.Error())
-//                    
-//                    sock.Close()
-//                    return 
-//                }
-//                log.Println(message)
-//                
-//                message.Handle()
-//        }
-//        
-//    }
-//}
-//
-//func listenForWrites(sock *Socket) {
-//    for {
-//        select {
-//            case message := <-sock.buff:
-//                log.Println("Send:", message)
-//                if err := websocket.JSON.Send(sock.ws, message); err != nil {
-//                    sock.Close()
-//                }
-//                
-//            case <-sock.done:
-//                sock.Close()
-//                return
-//        }
-//    }
-//}
+
+func listenForMessages(sock *Socket) {
+    
+    for {
+        
+        select {
+            case <- sock.done:
+                sock.Close()
+                return
+            
+            default:
+                var message Message
+                err := websocket.JSON.Receive(sock.ws, &message)
+                log.Println("Waiting...\n")
+                if err != nil {
+                    log.Printf("Error: %s\n", err.Error())
+                    
+                    sock.Close()
+                    return 
+                }
+                log.Println(message)
+                
+                message.Handle()
+        }
+        
+    }
+}
+
+func listenForWrites(sock *Socket) {
+    for {
+        select {
+            case message := <-sock.buff:
+                log.Println("Send:", message)
+                if err := websocket.JSON.Send(sock.ws, message); err != nil {
+                    sock.Close()
+                }
+                
+            case <-sock.done:
+                sock.Close()
+                return
+        }
+    }
+}

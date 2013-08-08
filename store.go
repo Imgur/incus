@@ -1,67 +1,90 @@
 package main
 
 import (
-    "errors"
- //   "log"
-    
-   // "github.com/garyburd/redigo/redis"
+    "log"    
+    "menteslibres.net/gosexy/redis"
 )
 
-type MemoryStore struct {
-    clients     map[string] *Socket
-    clientCount int
+type Storage struct {
+    memory      MemoryStore
+    redis       RedisStore
+    StorageType string
 }
 
-const StorageType = "redis"
-var Store = RedisStore{0}
+var Store Storage
 
-func initStore() {
-    if StorageType == "redis" {
+func (this Storage) initStore() {
+    this.memory = MemoryStore{make(map[string]*Socket), 0}
+    this.redis  = RedisStore{
+            ClientsKey,
+            
+            "localhost",
+            6379,
+            
+            redisPool{
+                connections: []*redis.Client{},
+                maxIdle:     6,
+                
+                connFn:      func () (*redis.Client, error) {
+                    client := redis.New()
+                    err := client.Connect("localhost", 6379)
+                    
+                    if err != nil {
+                        log.Fatalf("Connect failed: %s\n", err.Error())
+                        return nil, err
+                    }
+                    
+                    return client, nil
+                },
+            },
+            
+        }
+}
 
-        
-        Store = RedisStore{0}
+func (this *Storage) Save(UID string, s *Socket) (error) {
+    this.memory.Save(UID, s)
+    
+    if this.StorageType == "redis" {
+        if err := this.redis.Save(UID); err != nil {
+            return err
+        }
     }
+    
+    return nil
 }
 
-
-
-func (m *MemoryStore) Save(UID string, s *Socket) (bool, error) {
-    _, exists := m.clients[UID]
+func (this *Storage) Remove(UID string) (error) {
+    this.memory.Remove(UID)
     
-    m.clients[UID] = s;
-    
-    if(!exists) {  // if same UID connects again, don't up the clientCount
-        m.clientCount++
+    if this.StorageType == "redis" {
+        if err := this.redis.Remove(UID); err != nil {
+            return err
+        }
     }
     
-    return true, nil
+    return nil
 }
 
-func (m *MemoryStore) Remove(UID string) (bool, error) {
-    _, exists := m.clients[UID]
-    
-    delete(m.clients, UID)
-    
-    if(exists) { // only subtract if the client was in the store in the first place.
-        m.clientCount--
+func (this *Storage) Client(UID string) (*Socket, error) {
+    return this.memory.Client(UID)
+}
+
+func (this *Storage) Clients() (map[string] *Socket, error) {
+    return this.memory.Clients()
+}
+
+func (this *Storage) ClientList() ([]string, error) {
+    if this.StorageType == "redis" {
+        return this.redis.Clients()
     }
     
-    return true, nil
+    return nil, nil
 }
 
-func (m *MemoryStore) Client(UID string) (*Socket, error) {
-    var client, exists = m.clients[UID]
-    
-    if(!exists) {
-        return client, errors.New("ClientID doesn't exist")
+func (this *Storage) Count() (int64, error) {
+    if this.StorageType == "redis" {
+        return this.redis.Count()
     }
-    return client, nil
-}
-
-func (m *MemoryStore) Clients() (map[string] *Socket, error) {
-    return m.clients, nil
-}
-
-func (m *MemoryStore) Count() (int, error) {
-    return m.clientCount, nil
+    
+    return this.memory.Count()
 }

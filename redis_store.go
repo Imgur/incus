@@ -1,76 +1,137 @@
 package main
 
 import (
-    //"errors"
+    "errors"
     "log"
     
     "menteslibres.net/gosexy/redis"
 )
 
 const ClientsKey = "SocketClients"
-const CountKey   = "SocketClientsCount"
 
 type RedisStore struct {
-    clientCount int
+    clientsKey  string
+
+    server      string
+    port        int
+    pool        redisPool
 }
 
-//func (this *RedisStore) GetConn() (redis.Conn) {
-//    //if this.Pool.ActiveCount() == 0 {
-//    //    c, err := redis.Dial("tcp", ":6379")
-//    //    if err != nil {
-//    //        return nil, errors.New("Couldn't connect to redis :(")
-//    //    }
-//    //    
-//    //    return c, nil
-//    //}
-//    
-//    return this.Conn
-//}
+//connection pool implimentation
+type redisPool struct {
+    connections []*redis.Client
+    maxIdle     int
+    connFn      func() (*redis.Client, error) // function to create new connection.
+}
 
-func (this *RedisStore) Save(UID string, s *Socket) (bool, error) {
-    client = redis.New()
-    err = client.Connect("localhost", "6379")
-
-    if err != nil {
-        log.Fatalf("Connect failed: %s\n", err.Error())
-        return
-    }
- 
-    _, err1 := client.SAdd(ClientsKey, UID)
-    if err1 != nil {
-        log.Printf("%s\n", err1.Error())
+func (this *redisPool) Get() (*redis.Client, bool) {
+    log.Println(len(this.connections))
+    if(len(this.connections) == 0) {
+        conn, err := this.connFn()
+        if err != nil {
+            return nil, false
+        }
+        
+        return conn, true
     }
     
-    client.Close()
-    return true, nil
+    var conn *redis.Client
+    conn, this.connections = this.connections[len(this.connections)-1], this.connections[:len(this.connections)-1]
+    if err := this.testConn(conn); err != nil {
+        return this.Get() // if connection is bad, get the next one in line until base case is hit, then create new client
+    }
+    
+    return conn, true
 }
-//
-//func (this *RedisStore) Remove(UID string) (bool, error) {
-//    exists, _ := this.GetConn().Do("Hexists", redis.Args{}.Add(ClientsKey).Add(UID))
-//    
-//    //delete(m.clients, UID)
-//    
-//    if(exists) { // only subtract if the client was in the store in the first place.
-//        this.clientCount--
-//    }
-//    
-//    return true, nil
-//}
-//
-//func (this *RedisStore) Client(UID string) (*Socket, error) {
-//    exists, _ := this.GetConn().Do("Hexists", redis.Args{}.Add(ClientsKey).Add(UID))
-//    
-//    //if(!exists) {
-//    //    return nil, errors.New("ClientID doesn't exist")
-//    //}
-//    
-//    return nil, nil
-//}
-//
-//func (m *RedisStore) Clients() (map[string] *Socket, error) {
-//    return nil, nil
-//}
-//
-//func (m *RedisStore) Count() (int, error) {
-//    return 1, nil
-//}
+
+func (this *redisPool) Close(conn *redis.Client) {
+    if(len(this.connections) < this.maxIdle) {
+        this.connections = append(this.connections, conn)
+        return
+    }
+    
+    conn.Quit()
+}
+
+func (this *redisPool) testConn(conn *redis.Client) error {
+    if _, err := conn.Ping(); err != nil {
+        return err
+    }
+    
+    return nil
+}
+
+func (this *RedisStore) GetConn() (*redis.Client, error) {
+    
+    client, ok := this.pool.Get()
+    if !ok {
+        return nil, errors.New("Error while getting redis connection")
+    }
+    
+    return client, nil
+    
+}
+
+func (this *RedisStore) CloseConn(conn *redis.Client) {
+    this.pool.Close(conn)
+}
+
+func (this *RedisStore) Save(UID string) (error) {
+    client, err := this.GetConn()
+    if(err != nil) {
+        return err
+    }
+    defer this.CloseConn(client)
+ 
+    _, err = client.SAdd(this.clientsKey, UID)
+    if err != nil {
+        log.Printf("%s\n", err.Error())
+    }
+    
+    return nil
+}
+
+func (this *RedisStore) Remove(UID string) (error) {
+    client, err := this.GetConn()
+    if(err != nil) {
+        return err
+    }
+    defer this.CloseConn(client)
+ 
+    _, err = client.SRem(this.clientsKey, UID)
+    if err != nil {
+        return err
+    }
+    
+    return nil
+}
+
+func (this *RedisStore) Clients() ([]string, error) {
+    client, err := this.GetConn()
+    if(err != nil) {
+        return nil, err
+    }
+    defer this.CloseConn(client)
+ 
+    socks, err1 := client.SMembers(this.clientsKey)
+    if err1 != nil {
+        return nil, err1
+    }
+    
+    return socks, nil
+}
+
+func (this *RedisStore) Count() (int64, error) {
+    client, err := this.GetConn()
+    if(err != nil) {
+        return 0, err
+    }
+    defer this.CloseConn(client)
+ 
+    socks, err1 := client.SCard(this.clientsKey)
+    if err1 != nil {
+        return 0, err1
+    }
+    
+    return socks, nil
+}
