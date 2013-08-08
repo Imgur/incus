@@ -1,13 +1,29 @@
 package main
 
-import "errors"
+import (
+    "errors"
+ //   "log"
+    
+   // "github.com/garyburd/redigo/redis"
+)
 
 type MemoryStore struct {
     clients     map[string] *Socket
     clientCount int
 }
 
-var Store = MemoryStore{make(map[string]*Socket), 0}
+const StorageType = "redis"
+var Store = RedisStore{0}
+
+func initStore() {
+    if StorageType == "redis" {
+
+        
+        Store = RedisStore{0}
+    }
+}
+
+
 
 func (m *MemoryStore) Save(UID string, s *Socket) (bool, error) {
     _, exists := m.clients[UID]
