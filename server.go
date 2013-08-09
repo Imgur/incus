@@ -67,7 +67,7 @@ func (this *Server) initAppListner() {
         json.Unmarshal([]byte(ms[2]), &msg)
         log.Printf("Received %v\n", msg.Name)
         
-        go msg.FromSocket(&Socket{nil, "", nil, nil, this})
+        go msg.FromRedis(this)
     }
     
 }
