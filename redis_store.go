@@ -55,6 +55,7 @@ func (this *redisPool) Close(conn *redis.Client) {
 
 func (this *redisPool) testConn(conn *redis.Client) error {
     if _, err := conn.Ping(); err != nil {
+        conn.Quit()
         return err
     }
     
