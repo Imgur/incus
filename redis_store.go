@@ -25,7 +25,6 @@ type redisPool struct {
 }
 
 func (this *redisPool) Get() (*redis.Client, bool) {
-    log.Println(len(this.connections))
     if(len(this.connections) == 0) {
         conn, err := this.connFn()
         if err != nil {
@@ -89,11 +88,11 @@ func (this *RedisStore) Subscribe(c chan []string, channel string) (*redis.Clien
 }
 
 func (this *RedisStore) Publish(channel string, message string) {
-    publisher := redis.New()
-    err       := publisher.Connect(this.server, this.port)
-    if err != nil {
+    publisher, err := this.GetConn()
+    if(err != nil) {
         return
     }
+    defer this.CloseConn(publisher)
     
     publisher.Publish(channel, message)
     
@@ -110,6 +109,7 @@ func (this *RedisStore) Save(UID string) (error) {
     _, err = client.SAdd(this.clientsKey, UID)
     if err != nil {
         log.Printf("%s\n", err.Error())
+        return err
     }
     
     return nil
