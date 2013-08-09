@@ -21,7 +21,7 @@ func initStore(Config *Configuration) Storage{
             6379,
             
             redisPool{
-                connections: make([] *redis.Client, 6),
+                connections: []*redis.Client{},
                 maxIdle:     6,
                 
                 connFn:      func () (*redis.Client, error) {
