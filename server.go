@@ -3,6 +3,7 @@ package main
 import (
     "net/http"
     "log"
+    "encoding/json"
 
     "code.google.com/p/go.net/websocket"
 )
@@ -18,7 +19,7 @@ func main() {
     //initLogger()
     server := Server{&conf, &store}
     
-    //server.initAppListner()
+    go server.initAppListner()
     go server.initSocketListener()
     
     http.HandleFunc("/", rootHandler)
@@ -47,3 +48,27 @@ func (this *Server) initSocketListener() {
     
     http.Handle("/socket", websocket.Handler(Connect))
 }
+
+func (this *Server) initAppListner() {
+    
+    rec := make(chan []string)
+    
+    consumer, err := this.Store.redis.Subscribe(rec, "Message")
+    if err != nil {
+        log.Fatal("Couldn't subscribe to redis channel")
+    }
+    defer consumer.Quit()
+    
+    var ms []string
+    for {
+        var msg Message
+        log.Println("LISENING FOR REDIS MESSAGE")
+        ms = <- rec
+        json.Unmarshal([]byte(ms[2]), &msg)
+        log.Printf("Received %v\n", msg.Name)
+        
+        go msg.FromSocket(&Socket{nil, "", nil, nil, this})
+    }
+    
+}
+    
