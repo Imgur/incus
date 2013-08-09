@@ -40,8 +40,8 @@ func (this *MemoryStore) Client(UID string) (*Socket, error) {
     return client, nil
 }
 
-func (this *MemoryStore) Clients() (map[string] *Socket, error) {
-    return this.clients, nil
+func (this *MemoryStore) Clients() (map[string] *Socket) {
+    return this.clients
 }
 
 func (this *MemoryStore) Count() (int64, error) {
