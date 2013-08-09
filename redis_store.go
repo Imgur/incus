@@ -86,7 +86,18 @@ func (this *RedisStore) Subscribe(c chan []string, channel string) (*redis.Clien
     go consumer.Subscribe(c, channel)
     return consumer, nil
 }
+
+func (this *RedisStore) Publish(channel string, message string) {
+    publisher := redis.New()
+    err       := publisher.Connect(this.server, this.port)
+    if err != nil {
+        return
+    }
     
+    publisher.Publish(channel, message)
+    
+    publisher.Quit()
+}
 
 func (this *RedisStore) Save(UID string) (error) {
     client, err := this.GetConn()
