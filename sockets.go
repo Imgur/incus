@@ -62,8 +62,8 @@ func listenForMessages(sock *Socket) {
                 return
             
             default:
-                var message Message
-                err := websocket.JSON.Receive(sock.ws, &message)
+                var message *Message
+                err := websocket.JSON.Receive(sock.ws, message)
                 log.Println("Waiting...\n")
                 if err != nil {
                     log.Printf("Error: %s\n", err.Error())
