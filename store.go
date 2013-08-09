@@ -73,7 +73,7 @@ func (this *Storage) Client(UID string) (*Socket, error) {
     return this.memory.Client(UID)
 }
 
-func (this *Storage) Clients() (map[string] *Socket, error) {
+func (this *Storage) Clients() (map[string] *Socket) {
     return this.memory.Clients()
 }
 
