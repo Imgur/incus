@@ -32,6 +32,7 @@ func main() {
 func (this *Server) initSocketListener() {
     Connect := func(ws *websocket.Conn) {
         sock := Socket{ws, "", make(chan *Message, 1000), make(chan bool), this}
+        defer sock.Close()
         
         log.Printf("Connected via %s\n", ws.RemoteAddr());
         if err := Authenticate(&sock); err != nil {
@@ -43,14 +44,12 @@ func (this *Server) initSocketListener() {
         go listenForWrites(&sock)
         
         <-sock.done
-        sock.Close()
     }
     
     http.Handle("/socket", websocket.Handler(Connect))
 }
 
 func (this *Server) initAppListner() {
-    
     rec := make(chan []string)
     
     consumer, err := this.Store.redis.Subscribe(rec, "Message")
@@ -68,7 +67,6 @@ func (this *Server) initAppListner() {
         log.Printf("Received %v\n", msg.Name)
         
         go msg.FromRedis(this)
-    }
-    
+    }  
 }
     
