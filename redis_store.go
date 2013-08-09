@@ -13,7 +13,7 @@ type RedisStore struct {
     clientsKey  string
 
     server      string
-    port        int
+    port        uint
     pool        redisPool
 }
 
@@ -75,6 +75,18 @@ func (this *RedisStore) GetConn() (*redis.Client, error) {
 func (this *RedisStore) CloseConn(conn *redis.Client) {
     this.pool.Close(conn)
 }
+
+func (this *RedisStore) Subscribe(c chan []string, channel string) (*redis.Client, error) {
+    consumer := redis.New()
+    err := consumer.ConnectNonBlock(this.server, this.port)
+    if err != nil {
+        return nil, err
+    }
+    
+    go consumer.Subscribe(c, channel)
+    return consumer, nil
+}
+    
 
 func (this *RedisStore) Save(UID string) (error) {
     client, err := this.GetConn()
