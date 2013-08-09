@@ -1,0 +1,180 @@
+package main
+
+import (
+    "testing"
+    "time"
+    
+    "menteslibres.net/gosexy/redis"
+)
+
+var redisStore   =  RedisStore{
+        "TestKey",
+        
+        "localhost",
+        6379,
+        
+        redisPool{
+            connections: []*redis.Client{},
+            maxIdle:     1,
+            
+            connFn:      func () (*redis.Client, error) {
+                client := redis.New()
+                err := client.Connect("localhost", 6379)
+                
+                if err != nil {
+                    //log.Fatalf("Connect failed: %s\n", err.Error())
+                    return nil, err
+                }
+                
+                return client, nil
+            },
+        },
+        
+    }
+
+func TestPooltestConn(t *testing.T) {
+    conn := redis.New()
+    err := conn.Connect("localhost", 6379)
+    err = redisStore.pool.testConn(conn)
+    if(err != nil) {
+        t.Fatalf("testConn test failed: %s", err.Error())
+    }
+    
+    conn.Quit()
+    err = redisStore.pool.testConn(conn)
+    if(err == nil) {
+        t.Fatalf("testConn test failed: expected error got nil")
+    }
+}
+
+func TestPoolClose(t *testing.T) {
+    conn := redis.New()
+    err := conn.Connect("localhost", 6379)
+    if err != nil {
+        t.Errorf("pool.Close test failed: could not get connection")
+    }
+    
+    if len(redisStore.pool.connections) != 0 {
+        t.Errorf("pool.Close test failed: connection pool not empty")
+    }
+    redisStore.pool.Close(conn)
+    
+    if len(redisStore.pool.connections) != 1 {
+        t.Errorf("pool.Close test failed: connection pool length expected to be 1 got %s", len(redisStore.pool.connections))
+    }
+    
+    conn = redis.New()
+    err = conn.Connect("localhost", 6379)
+    if err != nil {
+        t.Errorf("pool.Close test failed: could not get connection")
+    }
+    
+    redisStore.pool.Close(conn)
+    if len(redisStore.pool.connections) != 1 {
+        t.Errorf("pool.Close test failed: connection pool length expected to be 1 got %s", len(redisStore.pool.connections))
+    }
+}
+
+func TestPoolGet(t *testing.T) {
+    if len(redisStore.pool.connections) != 1 {
+        t.Fatalf("pool.Get test failed: connection pool length expected to be 1 got %s", len(redisStore.pool.connections))
+    }
+    
+    client, ok := redisStore.pool.Get() // retrieve the connection that we created in the previous test
+    if !ok {
+        t.Fatalf("pool.Close test failed: could not get connection")
+    }
+    if len(redisStore.pool.connections) != 0 {
+        t.Errorf("pool.Get test failed: connection pool length expected to be 0 got %s", len(redisStore.pool.connections))
+    }
+    client.Quit()
+    
+    client, ok = redisStore.pool.Get() // create a new connection using connFn
+    if !ok {
+        t.Fatalf("pool.Close test failed: could not get connection")
+    }
+    if _, err := client.Ping(); err != nil {
+        t.Errorf("pool.Close test failed: could not ping new connection")
+    }
+    client.Quit()
+}
+
+func TestSubscribeAndPublish(t *testing.T) {
+    rec := make(chan []string)
+    conn, err := redisStore.Subscribe(rec, "sockets2goTesting")
+    if err != nil {
+        t.Fatalf("Could not subscribe: %s", err.Error())
+    }
+    defer conn.Quit()
+    
+    go func() {
+        time.Sleep(20 * time.Millisecond)
+        redisStore.Publish("sockets2goTesting", "TEST")
+    }()
+    
+    <- rec // throwaway subscribe message
+    ms := <- rec
+
+    if ms[2] != "TEST" {
+        t.Fatalf("Subscribe and Publish test failed, got %s", ms[2])
+    }
+}
+
+func TestRSave(t *testing.T) {
+    
+    redisStore.Save("TEST")
+    redisStore.Save("TEST1")
+    redisStore.Save("TEST2")
+    redisStore.Save("TEST3")
+    
+    client, err := redisStore.GetConn()
+    if err != nil {
+        t.Fatal("Save test failed couldn't get redis connection")
+    }
+    defer client.Quit()
+    
+    arr, _ := client.SMembers(redisStore.clientsKey)
+
+    if len(arr) != 4 {
+        t.Fatal("Save test failed")
+    }
+}
+
+func TestRRemove(t *testing.T) {
+    redisStore.Remove("TEST")
+    redisStore.Remove("TEST1")
+    
+    client, err := redisStore.GetConn()
+    if err != nil {
+        t.Fatal("Remove test failed couldn't get redis connection")
+    }
+    defer client.Quit()
+    
+    arr, _ := client.SMembers(redisStore.clientsKey)
+
+    if len(arr) != 2 {
+        t.Fatal("Remove test failed")
+    }
+}
+
+func TestRClients(t *testing.T) {
+    arr, err := redisStore.Clients()
+    if err != nil {
+        t.Fatal("Clients test failed couldn't get redis connection")
+    }
+    
+    if len(arr) != 2 {
+        t.Fatal("Clients test failed")
+    }
+}
+
+func TestRCount(t *testing.T) {
+    num, err := redisStore.Count()
+    if err != nil {
+        t.Fatal("Clients test failed couldn't get redis connection")
+    }
+    
+    if num != 2 {
+        t.Fatal("Clients test failed")
+    }
+}
