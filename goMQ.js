@@ -34,6 +34,10 @@ MQ.prototype.authenticate = function() {
     
     this.socket.send(message);
     console.log("Authenticated");
+    
+    if("connect" in this.onMessageCbs) {
+        this.onMessageCbs["connect"].call(null) 
+    }
 }
 
 MQ.prototype.on = function(name, func) {
@@ -46,7 +50,7 @@ MQ.prototype.onMessage = function(e) {
     if ("Event" in msg && msg.Event in this.onMessageCbs) {
         if(typeof this.onMessageCbs[msg.Event] == "function") {
             this.onMessageCbs[msg.Event].call(null, msg.Body);
-	}
+        }
     }
 }
 

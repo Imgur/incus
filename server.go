@@ -35,6 +35,7 @@ func main() {
     go server.initSocketListener()
     
     http.HandleFunc("/", rootHandler)
+    http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("/home/brian/Code/go/src/github.com/briankassouf/sockets2go/js/"))))
     err := http.ListenAndServe(listenAddr, nil)
     if err != nil {
         log.Fatal(err)
