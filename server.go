@@ -77,7 +77,7 @@ func (this *Server) initAppListner() {
         log.Println("LISENING FOR REDIS MESSAGE")
         ms = <- rec
         json.Unmarshal([]byte(ms[2]), &msg)
-        log.Printf("Received %v\n", msg.Name)
+        log.Printf("Received %v\n", msg.Event)
         
         go msg.FromRedis(this)
     }  

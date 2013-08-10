@@ -81,7 +81,7 @@ func TestListenForWriter(t *testing.T) {
         t.Errorf("ListenForMessages Test failed, Failed to get Socket TEST_UID, with error: %s", err.Error())
     }
     
-    if message.Name != "MessageUser" {
+    if message.Event != "MessageUser" {
         t.Error("ListenForMessages Test failed, Failed to get Socket TEST_UID")
     }
     sock.Close()

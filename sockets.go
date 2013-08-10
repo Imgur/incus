@@ -29,18 +29,18 @@ func Authenticate(sock *Socket) error {
     var message Message
     err := websocket.JSON.Receive(sock.ws, &message)
 
-    log.Println(message.Name)
+    log.Println(message.Event)
     if err != nil {
         return err
     }
     
-    if strings.ToLower(message.Name) != "handshake" {
-        return errors.New("Error: Handshake Expected.\n")
+    if strings.ToLower(message.Event) != "Authenticate" {
+        return errors.New("Error: Authenticate Expected.\n")
     }
     
     UID, ok := message.Body["UID"].(string)
     if !ok {
-        return errors.New("Error on Handshake: Bad Input.\n")
+        return errors.New("Error on Authenticate: Bad Input.\n")
     }
     
     log.Printf("saving UID as %s", UID)
