@@ -4,20 +4,32 @@ import (
     "net/http"
     "log"
     "encoding/json"
+    "crypto/md5"
+    "time"
+    "io"
 
     "code.google.com/p/go.net/websocket"
 )
 
 type Server struct {
+    ID      string
     Config  *Configuration
     Store   *Storage
+}
+
+func createServer(conf *Configuration, store *Storage) *Server{
+    hash := md5.New()
+    io.WriteString(hash, time.Now().String())
+    id := string(hash.Sum(nil))
+    
+    return &Server{id, conf, store}
 }
 
 func main() {
     conf  := initConfig()
     store := initStore(&conf)
     //initLogger()
-    server := Server{&conf, &store}
+    server := createServer(&conf, &store)
     
     go server.initAppListner()
     go server.initSocketListener()
@@ -57,6 +69,7 @@ func (this *Server) initAppListner() {
         log.Fatal("Couldn't subscribe to redis channel")
     }
     defer consumer.Quit()
+    <- rec // ignore subscribe command
     
     var ms []string
     for {
