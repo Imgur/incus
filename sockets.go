@@ -13,12 +13,17 @@ const listenAddr = "localhost:4000"
 type Socket struct {
     ws     *websocket.Conn
     UID    string
+    Page   string
     buff   chan *Message
     done   chan bool
     Server *Server
 }
 
-func (this Socket) Close() error {
+func newSocket(ws *websocket.Conn, server *Server) *Socket {
+    return &Socket{ws, "", "", make(chan *Message, 1000), make(chan bool), server}
+}
+
+func (this *Socket) Close() error {
     this.Server.Store.Remove(this.UID)
     this.done <- true
     
