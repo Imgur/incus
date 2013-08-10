@@ -43,17 +43,17 @@ func main() {
 
 func (this *Server) initSocketListener() {
     Connect := func(ws *websocket.Conn) {
-        sock := Socket{ws, "", make(chan *Message, 1000), make(chan bool), this}
+        sock := newSocket(ws, this)
         defer sock.Close()
         
         log.Printf("Connected via %s\n", ws.RemoteAddr());
-        if err := Authenticate(&sock); err != nil {
+        if err := Authenticate(sock); err != nil {
             log.Printf("Error: %s\n", err.Error())
             return
         }
     
-        go listenForMessages(&sock)
-        go listenForWrites(&sock)
+        go listenForMessages(sock)
+        go listenForWrites(sock)
         
         <-sock.done
     }
