@@ -34,7 +34,7 @@ func Authenticate(sock *Socket) error {
         return err
     }
     
-    if strings.ToLower(message.Event) != "Authenticate" {
+    if strings.ToLower(message.Event) != "authenticate" {
         return errors.New("Error: Authenticate Expected.\n")
     }
     
