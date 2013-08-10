@@ -1,19 +1,3 @@
-package main
-
-import "html/template"
-import "net/http"
-
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	rootTemplate.Execute(w, listenAddr)
-}
-
-var rootTemplate = template.Must(template.New("root").Parse(`
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8" />
-<script>
-
 function MQ(url, UID) {
     this.MAXRETRIES   = 6;
     
@@ -100,24 +84,3 @@ MQ.prototype.setPage = function(page) {
     var msg = this.newMessage("SetPage", body);
     return this.socket.send(msg);
 }
-
-function init() {
-    var socket = new MQ("ws://{{.}}/socket", "USER1");
-    
-    socket.on("TEST", function(e) {
-        alert(e);
-        console.log(e);
-    });
-	
-}
-
-window.addEventListener("load", init, false);
-
-</script>
-</head>
-<body>
-<input id="input" type="text">
-<div id="output"></div>
-</body>
-</html>
-`))
