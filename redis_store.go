@@ -185,10 +185,15 @@ func (this *RedisStore) UnsetPage(UID string, page string) error {
     }
     defer this.CloseConn(client)
  
-    _, err = client.HIncrBy(this.pageKey, page, -1)
+    var i int64
+    i, err = client.HIncrBy(this.pageKey, page, -1)
     if err != nil {
         log.Printf("%s\n", err.Error())
         return err
+    }
+    
+    if i < 0 {
+        client.HSet(this.pageKey, page, "0")
     }
     
     return nil
