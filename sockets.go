@@ -9,7 +9,7 @@ import (
 )
 
 const listenAddr = "localhost:4000"
-
+var i = 0
 type Socket struct {
     ws     *websocket.Conn
     UID    string
@@ -24,6 +24,13 @@ func newSocket(ws *websocket.Conn, server *Server) *Socket {
 }
 
 func (this *Socket) Close() error {
+    i++
+    log.Printf("CLOSING SOCK %s -- %v", this.Page, i)
+    if this.Page != "" {
+        this.Server.Store.UnsetPage(this.UID, this.Page)
+        this.Page = ""
+    }
+    
     this.Server.Store.Remove(this.UID)
     this.done <- true
     
@@ -67,8 +74,8 @@ func listenForMessages(sock *Socket) {
                 return
             
             default:
-                var message *Message
-                err := websocket.JSON.Receive(sock.ws, message)
+                var message Message
+                err := websocket.JSON.Receive(sock.ws, &message)
                 log.Println("Waiting...\n")
                 if err != nil {
                     log.Printf("Error: %s\n", err.Error())
