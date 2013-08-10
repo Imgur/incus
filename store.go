@@ -13,9 +13,10 @@ type Storage struct {
 
 func initStore(Config *Configuration) Storage{
     var Store = Storage{
-        MemoryStore{make(map[string]*Socket), 0},
+        MemoryStore{make(map[string] *Socket), 0, make(map[string] *Page)},
         RedisStore{
             ClientsKey,
+            PageKey,
             
             "localhost",
             6379,
@@ -91,4 +92,28 @@ func (this *Storage) Count() (int64, error) {
     }
     
     return this.memory.Count()
+}
+
+func (this *Storage) SetPage(UID string, page string) error {
+    this.memory.SetPage(UID, page)
+    
+    if this.StorageType == "redis" {
+        if err := this.redis.SetPage(UID, page); err != nil {
+            return err
+        }
+    }
+    
+    return nil
+}
+
+func (this *Storage) UnsetPage(UID string, page string) error {
+    this.memory.UnsetPage(UID, page)
+    
+    if this.StorageType == "redis" {
+        if err := this.redis.UnsetPage(UID, page); err != nil {
+            return err
+        }
+    }
+    
+    return nil
 }

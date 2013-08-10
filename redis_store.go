@@ -8,9 +8,11 @@ import (
 )
 
 const ClientsKey = "SocketClients"
+const PageKey    = "PageClients"
 
 type RedisStore struct {
     clientsKey  string
+    pageKey     string
 
     server      string
     port        uint
@@ -158,4 +160,36 @@ func (this *RedisStore) Count() (int64, error) {
     }
     
     return socks, nil
+}
+
+func (this *RedisStore) SetPage(UID string, page string) error {
+    client, err := this.GetConn()
+    if(err != nil) {
+        return err
+    }
+    defer this.CloseConn(client)
+ 
+    _, err = client.HIncrBy(this.pageKey, page, 1)
+    if err != nil {
+        log.Printf("%s\n", err.Error())
+        return err
+    }
+    
+    return nil
+}
+
+func (this *RedisStore) UnsetPage(UID string, page string) error {
+    client, err := this.GetConn()
+    if(err != nil) {
+        return err
+    }
+    defer this.CloseConn(client)
+ 
+    _, err = client.HIncrBy(this.pageKey, page, -1)
+    if err != nil {
+        log.Printf("%s\n", err.Error())
+        return err
+    }
+    
+    return nil
 }

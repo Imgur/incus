@@ -2,9 +2,15 @@ package main
 
 import "errors"
 
+type Page struct {
+    clients     map[string] *Socket
+    clientCount int64
+}
+
 type MemoryStore struct {
     clients     map[string] *Socket
     clientCount int64
+    pages       map[string] *Page
 }
 
 func (this *MemoryStore) Save(UID string, s *Socket) (error) {
@@ -46,4 +52,51 @@ func (this *MemoryStore) Clients() (map[string] *Socket) {
 
 func (this *MemoryStore) Count() (int64, error) {
     return this.clientCount, nil
+}
+
+func (this *MemoryStore) SetPage(UID string, page string) error {
+    sock, err := this.Client(UID)
+    if err != nil {
+        return err
+    }
+    
+    p, exists := this.pages[page]
+    if !exists {
+        pageMap := make(map[string]*Socket)
+        pageMap[UID] = sock
+        
+        this.pages[page] = &Page{
+            pageMap,
+            1,
+        }
+        
+        return nil
+    }
+    
+    _, exists = p.clients[UID]
+    p.clients[UID] = sock
+    if !exists {
+        p.clientCount++
+    }
+    
+    return nil
+}
+
+func (this *MemoryStore) UnsetPage(UID string, page string) error {
+    p, exists := this.pages[page]
+    if !exists {
+        return nil
+    }
+    
+    _, exists = p.clients[UID]
+    delete(p.clients, UID)
+    if !exists {
+        p.clientCount--
+    }
+    
+    if p.clientCount == 0 {
+        delete(this.pages, page)
+    }
+    
+    return nil
 }
