@@ -4,7 +4,7 @@ import "html/template"
 import "net/http"
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-	rootTemplate.Execute(w, listenAddr)
+    rootTemplate.Execute(w, listenAddr)
 }
 
 var rootTemplate = template.Must(template.New("root").Parse(`
@@ -12,11 +12,36 @@ var rootTemplate = template.Must(template.New("root").Parse(`
 <html>
 <head>
 <meta charset="utf-8" />
+<style>
+body {
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  width: 960px;
+  margin: 0 auto;
+  background: url(../images/bg.gif);
+  margin-bottom: 20px;
+}
+
+#map {
+  width: 960px;
+  height: 660px;
+  margin: 20px 0;
+}
+
+a {
+  color: #7d7d7d;
+  text-decoration: none;
+}
+</style>
+
+<script type="text/javascript" src="https://maps.google.com/maps/api/js?sensor=false"></script> 
+
 <script>
 
 function MQ(url, UID) {
     this.MAXRETRIES   = 6;
     
+    this.pending      = true;
+    this.pendingCommands = [];
     this.retries      = 0;
     this.url          = url;
     this.UID          = UID;
@@ -50,6 +75,12 @@ MQ.prototype.authenticate = function() {
     
     this.socket.send(message);
     console.log("Authenticated");
+    
+    if("connect" in this.onMessageCbs) {
+        this.onMessageCbs["connect"].call(null)
+        
+        this.onMessageCbs
+    }
 }
 
 MQ.prototype.on = function(name, func) {
@@ -62,7 +93,7 @@ MQ.prototype.onMessage = function(e) {
     if ("Event" in msg && msg.Event in this.onMessageCbs) {
         if(typeof this.onMessageCbs[msg.Event] == "function") {
             this.onMessageCbs[msg.Event].call(null, msg.Body);
-	}
+        }
     }
 }
 
@@ -102,22 +133,53 @@ MQ.prototype.setPage = function(page) {
 }
 
 function init() {
+
+    var latlng = new google.maps.LatLng(0, 0);
+    var myOptions = {
+        zoom: 2
+      , center: latlng
+      , mapTypeId: google.maps.MapTypeId.ROADMAP
+    };
+    
+    var map = new google.maps.Map(document.getElementById("map"), myOptions);
     var socket = new MQ("ws://{{.}}/socket", "USER1");
     
-    socket.on("TEST", function(e) {
-        alert(e);
-        console.log(e);
-    });
-	
+    socket.on('tweet', function(data){
+
+        // Add marker
+    
+        var myLatlng = new google.maps.LatLng(data.coordinates[1],data.coordinates[0]);
+    
+        var marker = new google.maps.Marker({
+          position: myLatlng, 
+          animation: google.maps.Animation.DROP,
+          map: map
+        });  
+    
+        // Remove marker after 30 seconds
+    
+        setTimeout(function(){
+          marker.setMap(null);
+          delete marker;
+        }, 30000);
+  });
+    
 }
 
-window.addEventListener("load", init, false);
+
+function initPage() {
+    var socket = new MQ("ws://{{.}}/socket", "USER1");
+    socket.on("connect", function() {
+        socket.setPage("index");
+    });    
+}
+
+window.addEventListener("load", initPage, false);
 
 </script>
 </head>
 <body>
-<input id="input" type="text">
-<div id="output"></div>
+<div id="map"></div>
 </body>
 </html>
 `))
