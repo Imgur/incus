@@ -16,7 +16,8 @@ type Message struct {
 func (this *Message) FromSocket(sock *Socket) {
     log.Printf("Handling message fo type %s\n", this.Event)
     
-    if this.Event == "MessageUser" {
+    switch this.Event {
+    case "MessageUser":
         msg, err := this.formatBody()
         if err != nil {
             return
@@ -33,9 +34,8 @@ func (this *Message) FromSocket(sock *Socket) {
         }
         
         rec.buff <- msg
-    }
     
-    if this.Event == "MessageAll" {
+    case "MessageAll":
         msg_str, _ := json.Marshal(this)
         
         sock.Server.Store.redis.Publish("Message", string(msg_str))
