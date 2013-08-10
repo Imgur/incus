@@ -18,27 +18,24 @@ func (this *Message) FromSocket(sock *Socket) {
     
     switch this.Event {
     case "MessageUser":
-        msg, err := this.formatBody()
-        if err != nil {
-            return
-        }
+        this.messageUser(sock.Server)
+    
+    case "MessageAll":
+        msg_str, _ := json.Marshal(this)
+        sock.Server.Store.redis.Publish("Message", string(msg_str)) //pass the message into redis to send message across cluster
         
-        UID, ok := this.Body["UID"].(string)
+    case "SetPage":
+        page, ok := this.Body["Page"].(string)
         if !ok {
             return
         }
         
-        rec, err := sock.Server.Store.Client(UID)
-        if err != nil {
-            return
+        if sock.Page != "" {
+            sock.Server.Store.UnsetPage(sock.UID, sock.Page)  //remove old page if it exists
         }
         
-        rec.buff <- msg
-    
-    case "MessageAll":
-        msg_str, _ := json.Marshal(this)
-        
-        sock.Server.Store.redis.Publish("Message", string(msg_str))
+        sock.Page = page
+        sock.Server.Store.SetPage(sock.UID, page) // set new page
     }
 }
 
@@ -48,23 +45,7 @@ func (this *Message) FromRedis(server *Server) {
     switch this.Event {
     
     case "MessageUser":
-        msg, err := this.formatBody()
-        if err != nil {
-            return
-        }
-        
-        UID, ok := this.Body["UID"].(string)
-        if !ok {
-            return
-        }
-        
-        rec, err := server.Store.Client(UID)
-        if err != nil {
-            return
-        }
-        
-        rec.buff <- msg
-        return
+        this.messageUser(server)
     
     case "MessageAll":
         msg, err := this.formatBody()
@@ -93,4 +74,23 @@ func (this *Message) formatBody() (*Message, error) {
     msg := &Message{event, body, time.Now().UTC().Unix()};
     
     return msg, nil
+}
+
+func (this *Message) messageUser(server *Server) {
+    msg, err := this.formatBody()
+    if err != nil {
+        return
+    }
+    
+    UID, ok := this.Body["UID"].(string)
+    if !ok {
+        return
+    }
+    
+    rec, err := server.Store.Client(UID)
+    if err != nil {
+        return
+    }
+    
+    rec.buff <- msg
 }
