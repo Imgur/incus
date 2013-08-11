@@ -35,7 +35,7 @@ func main() {
     go server.initSocketListener()
     
     http.HandleFunc("/", rootHandler)
-    http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("/home/brian/Code/go/src/github.com/briankassouf/sockets2go/js/"))))
+    http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./js/"))))
     err := http.ListenAndServe(listenAddr, nil)
     if err != nil {
         log.Fatal(err)
@@ -44,7 +44,7 @@ func main() {
 
 func (this *Server) initSocketListener() {
     Connect := func(ws *websocket.Conn) {
-        sock := newSocket(ws, this)
+        sock := newSocket(ws, this, "")
         defer sock.Close()
         
         log.Printf("Connected via %s\n", ws.RemoteAddr());
