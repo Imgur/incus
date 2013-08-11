@@ -7,30 +7,14 @@ import (
     "menteslibres.net/gosexy/redis"
 )
 
-var redisStore   =  RedisStore{
-        "TestKey",
-        
-        "localhost",
-        6379,
-        
-        redisPool{
-            connections: []*redis.Client{},
-            maxIdle:     1,
-            
-            connFn:      func () (*redis.Client, error) {
-                client := redis.New()
-                err := client.Connect("localhost", 6379)
-                
-                if err != nil {
-                    //log.Fatalf("Connect failed: %s\n", err.Error())
-                    return nil, err
-                }
-                
-                return client, nil
-            },
-        },
-        
-    }
+var redisStore   =  makeTestStore()
+
+func makeTestStore() RedisStore {
+    var redisStore  =  initStore(nil).redis
+    redisStore.clientsKey   = "TestClientKey"
+    redisStore.pool.maxIdle = 1
+    return redisStore
+}
 
 func TestPooltestConn(t *testing.T) {
     conn := redis.New()
@@ -60,7 +44,7 @@ func TestPoolClose(t *testing.T) {
     redisStore.pool.Close(conn)
     
     if len(redisStore.pool.connections) != 1 {
-        t.Errorf("pool.Close test failed: connection pool length expected to be 1 got %s", len(redisStore.pool.connections))
+        t.Errorf("pool.Close test failed: connection pool length expected to be 1 got %v", len(redisStore.pool.connections))
     }
     
     conn = redis.New()
@@ -70,7 +54,7 @@ func TestPoolClose(t *testing.T) {
     }
     
     redisStore.pool.Close(conn)
-    if len(redisStore.pool.connections) != 1 {
+    if len(redisStore.pool.connections) != 1 { //testing maxIdle; maxIdle = 1
         t.Errorf("pool.Close test failed: connection pool length expected to be 1 got %s", len(redisStore.pool.connections))
     }
 }
