@@ -29,7 +29,7 @@ func (this *Message) FromSocket(sock *Socket) {
         if !ok {
             return
         }
-        
+       log.Println(page) 
         if sock.Page != "" {
             sock.Server.Store.UnsetPage(sock.UID, sock.Page)  //remove old page if it exists
         }
@@ -59,6 +59,29 @@ func (this *Message) FromRedis(server *Server) {
             sock.buff <- msg
         }
         
+        return
+
+    case "MessagePage": 
+        msg, err := this.formatBody()
+        if err != nil {
+            return
+        }
+
+        page, ok := this.Body["Page"].(string)
+        if !ok {
+            return
+        }
+
+        pageStruct := server.Store.getPage(page)
+        if pageStruct == nil {
+            return
+        }
+        
+        clients := pageStruct.Clients() 
+        for _, sock := range clients {
+            sock.buff <- msg
+        }
+
         return
     }
 }

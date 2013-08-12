@@ -100,3 +100,17 @@ func (this *MemoryStore) UnsetPage(UID string, page string) error {
     
     return nil
 }
+
+func (this *MemoryStore) getPage(page string) *Page {
+    var p, exists = this.pages[page]
+    if !exists {
+        return nil
+    }
+    
+    return p
+}
+
+func (this *Page) Clients() (map[string] *Socket) {
+    return this.clients
+}
+
