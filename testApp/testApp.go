@@ -12,7 +12,9 @@ import (
 
 
 func main() {
-    pageSample()
+//    pageSample()
+//mapsSample()
+    pageUpdates()
 }
 
 func random(min, max int) int {
@@ -39,7 +41,7 @@ func mapsSample() {
     }
 }
 
-var pages = []string{"/", "new", "popular", "realtime", "memes", "gifs", "cats", "dogs", "seals", "headphones"}
+var pages = []string{"image", "new", "popular", "realtime", "memes", "gifs", "cats", "dogs", "seals", "headphones"}
 func pageSample() {
     shut := make(chan bool)
     store := []*websocket.Conn{}
@@ -66,4 +68,23 @@ func pageSample() {
     }
     
                 <-shut
+}
+
+func pageUpdates() {
+    client := redis.New()
+    err := client.Connect("localhost", 6379)
+         
+    if err != nil {
+        log.Fatalf("Connect failed: %s\n", err.Error())
+        return
+    }   
+        
+    var message string
+    for {
+        page := pages[random(0, len(pages))]
+        message =  fmt.Sprintf("{\"Event\":\"MessagePage\",\"Body\":{\"Event\": \"update\", \"Page\": \"%s\", \"Message\": {\"page\": \"%s\"}}, \"Time\":12312}",  page, page)
+        client.Publish("Message", message)
+        time.Sleep(20 * time.Millisecond)
+               
+    }
 }
