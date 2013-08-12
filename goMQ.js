@@ -83,7 +83,7 @@ MQ.prototype.MessageAll = function(event, message) {
 }
 
 MQ.prototype.setPage = function(page) {
-    var body = {"Page": page}
+    var body = {"Page": page};
     
     var msg = this.newMessage("SetPage", body);
     return this.socket.send(msg);
