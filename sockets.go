@@ -19,8 +19,8 @@ type Socket struct {
     Server *Server
 }
 
-func newSocket(ws *websocket.Conn, server *Server) *Socket {
-    return &Socket{ws, "", "", make(chan *Message, 1000), make(chan bool), server}
+func newSocket(ws *websocket.Conn, server *Server, UID string) *Socket {
+    return &Socket{ws, UID, "", make(chan *Message, 1000), make(chan bool), server}
 }
 
 func (this *Socket) Close() error {

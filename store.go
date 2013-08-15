@@ -117,3 +117,7 @@ func (this *Storage) UnsetPage(UID string, page string) error {
     
     return nil
 }
+
+func (this *Storage) getPage(page string) *Page {
+    return this.memory.getPage(page)
+}

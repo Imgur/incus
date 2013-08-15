@@ -2,14 +2,10 @@ package main
 
 import "testing"
 
-var MemStore = MemoryStore{make(map[string]*Socket), 0}
-
-func makeSock(UID string) *Socket {
-    return &Socket{nil, UID, make(chan *Message), make(chan bool), nil}
-}
+var MemStore = initStore(nil).memory 
 
 func TestSave(t *testing.T) {
-    MemStore.Save("TEST", makeSock("TEST"))
+    MemStore.Save("TEST", newSocket(nil, nil, "TEST"))
     
     _, exists := MemStore.clients["TEST"]
     if(!exists) {
@@ -20,12 +16,12 @@ func TestSave(t *testing.T) {
         t.Errorf("Save Test failed, clientCount = %v, want %v", MemStore.clientCount, 1)
     }
     
-    MemStore.Save("TEST1", makeSock("TEST1"))
+    MemStore.Save("TEST1", newSocket(nil, nil, "TEST1"))
     if(MemStore.clientCount != 2) {
         t.Errorf("Save Test failed, clientCount = %v, want %v", MemStore.clientCount, 2)
     }
     
-    MemStore.Save("TEST1", makeSock("TEST1"))
+    MemStore.Save("TEST1", newSocket(nil, nil, "TEST1"))
     if(MemStore.clientCount != 2) {
         t.Errorf("Save Test failed, clientCount = %v, want %v", MemStore.clientCount, 2)
     }
@@ -63,7 +59,7 @@ func TestRemove(t *testing.T) {
 }
 
 func TestClient(t *testing.T) {
-    MemStore.Save("TEST1", makeSock("TEST1"))
+    MemStore.Save("TEST1", newSocket(nil, nil, "TEST1"))
     
     client, err := MemStore.Client("TEST1");
     if err != nil {
@@ -84,14 +80,14 @@ func TestClient(t *testing.T) {
 }
 
 func TestGetCount(t *testing.T) {
-    MemStore.Save("TEST3", makeSock("TEST3"))
+    MemStore.Save("TEST3", newSocket(nil, nil, "TEST3"))
 
     count, _ := MemStore.Count()
     if count != 1 {
         t.Errorf("GetCount Test failed. ClientCount = %v, expected %v", count, 1)
     }
 
-    MemStore.Save("TEST4", makeSock("TEST4"))
+    MemStore.Save("TEST4", newSocket(nil, nil, "TEST4"))
     count, _ = MemStore.Count()
     if count != 2 {
         t.Errorf("GetCount Test failed. ClientCount = %v, expected %v", count, 2 )
