@@ -5,6 +5,7 @@ function MQ(url, UID) {
     this.url          = url;
     this.UID          = UID;
     this.onMessageCbs = {};
+    this.connected    = false;
     
     this.connect();
 }
@@ -35,12 +36,17 @@ MQ.prototype.authenticate = function() {
     this.socket.send(message);
     console.log("Authenticated");
     
+    this.connected = true;
     if("connect" in this.onMessageCbs) {
-        this.onMessageCbs["connect"].call(null) 
+        this.onMessageCbs["connect"].call(null)
     }
 }
 
 MQ.prototype.on = function(name, func) {
+    if (name == 'connect' && this.connected) {
+        func();
+    }
+    
     this.onMessageCbs[name] = func;
 }
 
@@ -59,8 +65,10 @@ MQ.prototype.onClose = function() {
         return;
     }
     
-    var self = this;
     this.retries++;
+    this.connected = false;
+    
+    var self = this;
     window.setTimeout(function() {
         console.log("Connection closed, retrying");
         
