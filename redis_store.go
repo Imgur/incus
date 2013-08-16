@@ -26,6 +26,35 @@ type redisPool struct {
     connFn      func() (*redis.Client, error) // function to create new connection.
 }
 
+func newRedisStore(redis_host string, redis_port uint) (RedisStore) {
+    
+    return RedisStore{
+        ClientsKey,
+        PageKey,
+        
+        redis_host,
+        redis_port,
+        
+        redisPool{
+            connections: []*redis.Client{},
+            maxIdle:     6,
+            
+            connFn:      func () (*redis.Client, error) {
+                client := redis.New()
+                err := client.Connect(redis_host, redis_port)
+                
+                if err != nil {
+                    log.Fatalf("Connect failed: %s\n", err.Error())
+                    return nil, err
+                }
+                
+                return client, nil
+            },
+        },
+    }
+    
+}
+
 func (this *redisPool) Get() (*redis.Client, bool) {
     if(len(this.connections) == 0) {
         conn, err := this.connFn()

@@ -3,6 +3,7 @@ package main
 import (
     "log"
     "fmt"
+    "strconv"
 
     "github.com/briankassouf/cfg"
 )
@@ -21,11 +22,25 @@ func initConfig() Configuration {
     return Configuration{mymap}    
 }
 
-func (this *Configuration) Get(name string) (string, error) {
+func (this *Configuration) Get(name string) string {
     val, ok := this.vars[name]
     if !ok {
-        return "", fmt.Errorf("Config Error: variable '%s' not found", name)
+        panic(fmt.Sprintf("Config Error: variable '%s' not found", name))
     }
  
-    return val, nil;
+    return val;
+}
+
+func (this *Configuration) GetInt(name string) int {
+    val, ok := this.vars[name]
+    if !ok {
+        panic(fmt.Sprintf("Config Error: variable '%s' not found", name))
+    }
+ 
+    i, err := strconv.Atoi(val)
+    if err != nil {
+        panic(fmt.Sprintf("Config Error: '%s' could not be cast as an int", name))
+    }
+    
+    return i
 }

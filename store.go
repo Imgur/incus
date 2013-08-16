@@ -1,8 +1,7 @@
 package main
 
 import (
-    "log"    
-    "menteslibres.net/gosexy/redis"
+    "log"
 )
 
 type Storage struct {
@@ -12,35 +11,24 @@ type Storage struct {
 }
 
 func initStore(Config *Configuration) Storage{
+    store_type := "memory"
+    var redisStore RedisStore
+    
+    redis_enabled := Config.Get("redis_enabled");
+    if(redis_enabled == "true") {
+        redis_host := Config.Get("redis_host")
+        redis_port := uint(Config.GetInt("redis_port"))
+        log.Println("%s, %v", redis_host, redis_port)
+        
+        redisStore = newRedisStore(redis_host, redis_port)
+        store_type = "redis"
+    }
+    
     var Store = Storage{
         MemoryStore{make(map[string] *Socket), 0, make(map[string] *Page)},
-        RedisStore{
-            ClientsKey,
-            PageKey,
-            
-            "localhost",
-            6379,
-            
-            redisPool{
-                connections: []*redis.Client{},
-                maxIdle:     6,
-                
-                connFn:      func () (*redis.Client, error) {
-                    client := redis.New()
-                    err := client.Connect("localhost", 6379)
-                    
-                    if err != nil {
-                        log.Fatalf("Connect failed: %s\n", err.Error())
-                        return nil, err
-                    }
-                    
-                    return client, nil
-                },
-            },
-            
-        },
+        redisStore,
         
-        "redis",
+        store_type,
     }
     
     return Store
