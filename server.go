@@ -7,6 +7,7 @@ import (
     "crypto/md5"
     "time"
     "io"
+    "fmt"
 
     "code.google.com/p/go.net/websocket"
 )
@@ -34,7 +35,7 @@ func main() {
     go server.initAppListner()
     go server.initSocketListener()
     
-    http.HandleFunc("/", rootHandler)
+    listenAddr := fmt.Sprintf("localhost:%s", conf.Get("listening_port"))
     http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./js/"))))
     err := http.ListenAndServe(listenAddr, nil)
     if err != nil {

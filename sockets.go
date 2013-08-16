@@ -8,7 +8,6 @@ import (
     "code.google.com/p/go.net/websocket"
 )
 
-const listenAddr = "localhost:4000"
 var i = 0
 type Socket struct {
     ws     *websocket.Conn
