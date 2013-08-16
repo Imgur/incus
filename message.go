@@ -14,16 +14,24 @@ type Message struct {
 }
 
 func (this *Message) FromSocket(sock *Socket) {
-    log.Printf("Handling message fo type %s\n", this.Event)
+    log.Printf("Handling message of type %s\n", this.Event)
     
     switch this.Event {
     case "MessageUser":
-        this.messageUser(sock.Server)
-    
-    case "MessageAll":
-        msg_str, _ := json.Marshal(this)
-        sock.Server.Store.redis.Publish("Message", string(msg_str)) //pass the message into redis to send message across cluster
+        if(sock.Server.Store.StorageType == "redis") {
+            this.forwardToRedis(sock.Server)
+            return 
+        }
         
+        this.messageUser(sock.Server)
+        
+    case "MessageAll":
+        if(sock.Server.Store.StorageType == "redis") {
+            this.forwardToRedis(sock.Server)
+            return
+        }
+        
+        this.messageAll(sock.Server)
     case "SetPage":
         page, ok := this.Body["Page"].(string)
         if !ok {
@@ -40,7 +48,7 @@ func (this *Message) FromSocket(sock *Socket) {
 }
 
 func (this *Message) FromRedis(server *Server) {
-    log.Printf("Handling message fo type %s\n", this.Event)
+    log.Printf("Handling message of type %s\n", this.Event)
     
     switch this.Event {
     
@@ -48,18 +56,7 @@ func (this *Message) FromRedis(server *Server) {
         this.messageUser(server)
     
     case "MessageAll":
-        msg, err := this.formatBody()
-        if err != nil {
-            return
-        }
-    
-        clients := server.Store.Clients()
-        
-        for _, sock := range clients {
-            sock.buff <- msg
-        }
-        
-        return
+        this.messageAll(server)
 
     case "MessagePage": 
         msg, err := this.formatBody()
@@ -117,3 +114,24 @@ func (this *Message) messageUser(server *Server) {
     
     rec.buff <- msg
 }
+
+func (this *Message) messageAll(server *Server) {
+    msg, err := this.formatBody()
+    if err != nil {
+        return
+    }
+
+    clients := server.Store.Clients()
+    
+    for _, sock := range clients {
+        sock.buff <- msg
+    }
+    
+    return
+}
+
+func (this *Message) forwardToRedis(server *Server) {
+    msg_str, _ := json.Marshal(this)
+    server.Store.redis.Publish("Message", string(msg_str)) //pass the message into redis to send message across cluster    
+}
+
