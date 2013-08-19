@@ -85,7 +85,7 @@ func TestPoolGet(t *testing.T) {
 
 func TestSubscribeAndPublish(t *testing.T) {
     rec := make(chan []string)
-    conn, err := redisStore.Subscribe(rec, "sockets2goTesting")
+    conn, err := redisStore.Subscribe(rec, "incusTesting")
     if err != nil {
         t.Fatalf("Could not subscribe: %s", err.Error())
     }
@@ -93,7 +93,7 @@ func TestSubscribeAndPublish(t *testing.T) {
     
     go func() {
         time.Sleep(20 * time.Millisecond)
-        redisStore.Publish("sockets2goTesting", "TEST")
+        redisStore.Publish("incusTesting", "TEST")
     }()
     
     <- rec // throwaway subscribe message
