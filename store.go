@@ -1,16 +1,12 @@
 package main
 
-import (
-    "log"
-)
-
 type Storage struct {
     memory      MemoryStore
     redis       RedisStore
     StorageType string
 }
 
-func initStore(Config *Configuration) Storage{
+func initStore(Config *Configuration) Storage {
     store_type := "memory"
     var redisStore RedisStore
     
@@ -18,7 +14,6 @@ func initStore(Config *Configuration) Storage{
     if(redis_enabled == "true") {
         redis_host := Config.Get("redis_host")
         redis_port := uint(Config.GetInt("redis_port"))
-        log.Println("%s, %v", redis_host, redis_port)
         
         redisStore = newRedisStore(redis_host, redis_port)
         store_type = "redis"

@@ -44,7 +44,7 @@ func newRedisStore(redis_host string, redis_port uint) (RedisStore) {
                 err := client.Connect(redis_host, redis_port)
                 
                 if err != nil {
-                    log.Fatalf("Connect failed: %s\n", err.Error())
+                    log.Printf("Redis connect failed: %s\n", err.Error())
                     return nil, err
                 }
                 
@@ -139,7 +139,6 @@ func (this *RedisStore) Save(UID string) (error) {
  
     _, err = client.SAdd(this.clientsKey, UID)
     if err != nil {
-        log.Printf("%s\n", err.Error())
         return err
     }
     
@@ -200,7 +199,6 @@ func (this *RedisStore) SetPage(UID string, page string) error {
  
     _, err = client.HIncrBy(this.pageKey, page, 1)
     if err != nil {
-        log.Printf("%s\n", err.Error())
         return err
     }
     
@@ -217,7 +215,6 @@ func (this *RedisStore) UnsetPage(UID string, page string) error {
     var i int64
     i, err = client.HIncrBy(this.pageKey, page, -1)
     if err != nil {
-        log.Printf("%s\n", err.Error())
         return err
     }
     

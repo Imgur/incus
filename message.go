@@ -14,7 +14,7 @@ type Message struct {
 }
 
 func (this *Message) FromSocket(sock *Socket) {
-    log.Printf("Handling message of type %s\n", this.Event)
+    if DEBUG { log.Printf("Handling socket message of type %s\n", this.Event) }
     
     switch this.Event {
     case "MessageUser":
@@ -37,7 +37,7 @@ func (this *Message) FromSocket(sock *Socket) {
         if !ok {
             return
         }
-       log.Println(page) 
+
         if sock.Page != "" {
             sock.Server.Store.UnsetPage(sock.UID, sock.Page)  //remove old page if it exists
         }
@@ -48,7 +48,7 @@ func (this *Message) FromSocket(sock *Socket) {
 }
 
 func (this *Message) FromRedis(server *Server) {
-    log.Printf("Handling message of type %s\n", this.Event)
+    if DEBUG { log.Printf("Handling redis message of type %s\n", this.Event) }
     
     switch this.Event {
     

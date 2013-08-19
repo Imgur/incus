@@ -24,7 +24,7 @@ func newSocket(ws *websocket.Conn, server *Server, UID string) *Socket {
 
 func (this *Socket) Close() error {
     i++
-    log.Printf("CLOSING SOCK %s -- %v", this.Page, i)
+    if DEBUG { log.Printf("CLOSING SOCK %s -- %v", this.Page, i) }
     if this.Page != "" {
         this.Server.Store.UnsetPage(this.UID, this.Page)
         this.Page = ""
@@ -40,7 +40,7 @@ func Authenticate(sock *Socket) error {
     var message Message
     err := websocket.JSON.Receive(sock.ws, &message)
 
-    log.Println(message.Event)
+    if DEBUG { log.Println(message.Event) }
     if err != nil {
         return err
     }
@@ -54,12 +54,10 @@ func Authenticate(sock *Socket) error {
         return errors.New("Error on Authenticate: Bad Input.\n")
     }
     
-    log.Printf("saving UID as %s", UID)
+    if DEBUG { log.Printf("saving UID as %s", UID) }
     sock.UID = UID
     sock.Server.Store.Save(UID, sock)
-    
-    log.Printf("saving UID as %s", sock.UID)
-    
+        
     return nil
 }
 
@@ -75,14 +73,14 @@ func listenForMessages(sock *Socket) {
             default:
                 var message Message
                 err := websocket.JSON.Receive(sock.ws, &message)
-                log.Println("Waiting...\n")
+                
                 if err != nil {
-                    log.Printf("Error: %s\n", err.Error())
+                    if DEBUG { log.Printf("Error: %s\n", err.Error()) }
                     
                     sock.Close()
                     return 
                 }
-                log.Println(message)
+                if DEBUG { log.Println(message) }
                 
                 go message.FromSocket(sock)
         }
@@ -94,8 +92,9 @@ func listenForWrites(sock *Socket) {
     for {
         select {
             case message := <-sock.buff:
-                log.Println("Send:", message)
+                if DEBUG { log.Println("Sending:", message) }
                 if err := websocket.JSON.Send(sock.ws, message); err != nil {
+                    if DEBUG { log.Printf("Error: %s\n", err.Error()) }
                     sock.Close()
                 }
                 

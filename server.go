@@ -12,6 +12,9 @@ import (
     "code.google.com/p/go.net/websocket"
 )
 
+var DEV bool
+var DEBUG bool
+
 type Server struct {
     ID      string
     Config  *Configuration
@@ -29,7 +32,8 @@ func createServer(conf *Configuration, store *Storage) *Server{
 func main() {
     conf  := initConfig()
     store := initStore(&conf)
-    //initLogger()
+    initLogger(conf)
+    
     server := createServer(&conf, &store)
     
     go server.initAppListner()
@@ -48,9 +52,9 @@ func (this *Server) initSocketListener() {
         sock := newSocket(ws, this, "")
         defer sock.Close()
         
-        log.Printf("Connected via %s\n", ws.RemoteAddr());
+        if DEBUG { log.Printf("Socket connected via %s\n", ws.RemoteAddr()) }
         if err := Authenticate(sock); err != nil {
-            log.Printf("Error: %s\n", err.Error())
+            if DEBUG { log.Printf("Error: %s\n", err.Error()) }
             return
         }
     
@@ -73,15 +77,15 @@ func (this *Server) initAppListner() {
     defer consumer.Quit()
     <- rec // ignore subscribe command
     
+    if DEBUG { log.Println("LISENING FOR REDIS MESSAGE") }
     var ms []string
     for {
         var msg Message
-        log.Println("LISENING FOR REDIS MESSAGE")
         ms = <- rec
         json.Unmarshal([]byte(ms[2]), &msg)
-        log.Printf("Received %v\n", msg.Event)
-        
         go msg.FromRedis(this)
+        
+        if DEBUG { log.Printf("Received %v\n", msg.Event) }
     }  
 }
     
