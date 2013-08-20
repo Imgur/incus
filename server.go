@@ -39,7 +39,7 @@ func main() {
     go server.initAppListner()
     go server.initSocketListener()
     
-    listenAddr := fmt.Sprintf("localhost:%s", conf.Get("listening_port"))
+    listenAddr := fmt.Sprintf(":%s", conf.Get("listening_port"))
     http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./js/"))))
     err := http.ListenAndServe(listenAddr, nil)
     if err != nil {
