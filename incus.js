@@ -1,4 +1,4 @@
-function MQ(url, UID) {
+function Incus(url, UID) {
     this.MAXRETRIES   = 6;
     
     this.retries      = 0;
@@ -10,7 +10,7 @@ function MQ(url, UID) {
     this.connect();
 }
 
-MQ.prototype.connect = function() {
+Incus.prototype.connect = function() {
     this.socket = new WebSocket(this.url);
     
     var self = this;
@@ -19,7 +19,7 @@ MQ.prototype.connect = function() {
     this.socket.onclose   = function() { self.onClose() };
 }
 
-MQ.prototype.newMessage = function(Event, Body) {
+Incus.prototype.newMessage = function(Event, Body) {
     var obj = {
         "Event": Event,
         "Body": Body,
@@ -29,7 +29,7 @@ MQ.prototype.newMessage = function(Event, Body) {
     return JSON.stringify(obj);
 }
 
-MQ.prototype.authenticate = function() {
+Incus.prototype.authenticate = function() {
     this.retries = 0;
     var message = this.newMessage("Authenticate", {"UID": this.UID});
     
@@ -42,7 +42,7 @@ MQ.prototype.authenticate = function() {
     }
 }
 
-MQ.prototype.on = function(name, func) {
+Incus.prototype.on = function(name, func) {
     if (name == 'connect' && this.connected) {
         func();
     }
@@ -50,7 +50,7 @@ MQ.prototype.on = function(name, func) {
     this.onMessageCbs[name] = func;
 }
 
-MQ.prototype.onMessage = function(e) {
+Incus.prototype.onMessage = function(e) {
     var msg = JSON.parse(e.data);
 
     if ("Event" in msg && msg.Event in this.onMessageCbs) {
@@ -60,7 +60,7 @@ MQ.prototype.onMessage = function(e) {
     }
 }
 
-MQ.prototype.onClose = function() {
+Incus.prototype.onClose = function() {
     if (this.retries > this.MAXRETRIES) {
         return;
     }
@@ -76,21 +76,21 @@ MQ.prototype.onClose = function() {
     }, 1000);
 }
 
-MQ.prototype.MessageUser = function(event, UID, message) { // need to send sender's UID
+Incus.prototype.MessageUser = function(event, UID, message) { // need to send sender's UID
     var body = {"Event": event, "UID": UID, "Message": message};
     
     var msg = this.newMessage("MessageUser", body);
     return this.socket.send(msg);
 }
 
-MQ.prototype.MessageAll = function(event, message) {
+Incus.prototype.MessageAll = function(event, message) {
     var body = {"Event": event, "Message": message};
     
     var msg = this.newMessage("MessageAll", body);
     return this.socket.send(msg);
 }
 
-MQ.prototype.setPage = function(page) {
+Incus.prototype.setPage = function(page) {
     var body = {"Page": page};
     
     var msg = this.newMessage("SetPage", body);
