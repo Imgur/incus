@@ -13,7 +13,7 @@ type Configuration struct {
 
 func initConfig() Configuration {
     mymap := make(map[string]string)
-    err := cfg.Load("sockets.conf", mymap)
+    err := cfg.Load("/var/log/incus.conf", mymap)
     if err != nil {
         log.Panic(err)
     }
