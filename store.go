@@ -1,9 +1,14 @@
 package main
 
+import "sync"
+
 type Storage struct {
     memory      MemoryStore
     redis       RedisStore
     StorageType string
+    
+    userMu      sync.Mutex
+    pageMu      sync.Mutex
 }
 
 func initStore(Config *Configuration) Storage {
@@ -22,14 +27,18 @@ func initStore(Config *Configuration) Storage {
     var Store = Storage{
         MemoryStore{make(map[string]map[string] *Socket), make(map[string] map[string] *Socket), 0},
         redisStore,
-        
         store_type,
+        
+        sync.Mutex{},
+        sync.Mutex{},
     }
     
     return Store
 }
 
 func (this *Storage) Save(sock *Socket) (error) {
+    this.userMu.Lock()
+    
     this.memory.Save(sock)
     
     if this.StorageType == "redis" {
@@ -38,10 +47,13 @@ func (this *Storage) Save(sock *Socket) (error) {
         }
     }
     
+    this.userMu.Unlock()
     return nil
 }
 
 func (this *Storage) Remove(sock *Socket) (error) {
+    this.userMu.Lock()
+    
     this.memory.Remove(sock)
     
     if this.StorageType == "redis" {
@@ -50,6 +62,7 @@ func (this *Storage) Remove(sock *Socket) (error) {
         }
     }
     
+    this.userMu.Unlock()
     return nil
 }
 
@@ -78,6 +91,8 @@ func (this *Storage) Count() (int64, error) {
 }
 
 func (this *Storage) SetPage(sock *Socket) error {
+    this.pageMu.Lock()
+    
     this.memory.SetPage(sock)
     
     if this.StorageType == "redis" {
@@ -86,10 +101,12 @@ func (this *Storage) SetPage(sock *Socket) error {
         }
     }
     
+    this.pageMu.Unlock()
     return nil
 }
 
 func (this *Storage) UnsetPage(sock *Socket) error {
+    this.pageMu.Lock()
     this.memory.UnsetPage(sock)
     
     if this.StorageType == "redis" {
@@ -98,6 +115,7 @@ func (this *Storage) UnsetPage(sock *Socket) error {
         }
     }
     
+    this.pageMu.Unlock()
     return nil
 }
 
