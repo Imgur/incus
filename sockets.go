@@ -36,9 +36,9 @@ func (this *Socket) Close() error {
     return nil
 }
 
-func Authenticate(sock *Socket) error {
+func (this *Socket) Authenticate() error {
     var message Message
-    err := websocket.JSON.Receive(sock.ws, &message)
+    err := websocket.JSON.Receive(this.ws, &message)
 
     if DEBUG { log.Println(message.Event) }
     if err != nil {
@@ -55,51 +55,51 @@ func Authenticate(sock *Socket) error {
     }
     
     if DEBUG { log.Printf("saving UID as %s", UID) }
-    sock.UID = UID
-    sock.Server.Store.Save(UID, sock)
+    this.UID = UID
+    this.Server.Store.Save(UID, this)
         
     return nil
 }
 
-func listenForMessages(sock *Socket) {
+func (this *Socket) listenForMessages() {
     
     for {
         
         select {
-            case <- sock.done:
-                sock.Close()
+            case <- this.done:
+                this.Close()
                 return
             
             default:
                 var message Message
-                err := websocket.JSON.Receive(sock.ws, &message)
+                err := websocket.JSON.Receive(this.ws, &message)
                 
                 if err != nil {
                     if DEBUG { log.Printf("Error: %s\n", err.Error()) }
                     
-                    sock.Close()
+                    this.Close()
                     return 
                 }
                 if DEBUG { log.Println(message) }
                 
-                go message.FromSocket(sock)
+                go message.FromSocket(this)
         }
         
     }
 }
 
-func listenForWrites(sock *Socket) {
+func (this *Socket) listenForWrites() {
     for {
         select {
-            case message := <-sock.buff:
+            case message := <-this.buff:
                 if DEBUG { log.Println("Sending:", message) }
-                if err := websocket.JSON.Send(sock.ws, message); err != nil {
+                if err := websocket.JSON.Send(this.ws, message); err != nil {
                     if DEBUG { log.Printf("Error: %s\n", err.Error()) }
-                    sock.Close()
+                    this.Close()
                 }
                 
-            case <-sock.done:
-                sock.Close()
+            case <-this.done:
+                this.Close()
                 return
         }
     }

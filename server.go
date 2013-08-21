@@ -53,13 +53,13 @@ func (this *Server) initSocketListener() {
         defer sock.Close()
         
         if DEBUG { log.Printf("Socket connected via %s\n", ws.RemoteAddr()) }
-        if err := Authenticate(sock); err != nil {
+        if err := sock.Authenticate(); err != nil {
             if DEBUG { log.Printf("Error: %s\n", err.Error()) }
             return
         }
     
-        go listenForMessages(sock)
-        go listenForWrites(sock)
+        go sock.listenForMessages()
+        go sock.listenForWrites()
         
         <-sock.done
     }
