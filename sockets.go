@@ -4,6 +4,7 @@ import (
     "log"
     "strings"
     "errors"
+    "sync"
 
     "code.google.com/p/go.net/websocket"
 )
@@ -61,13 +62,12 @@ func (this *Socket) Authenticate() error {
     return nil
 }
 
-func (this *Socket) listenForMessages() {
-    
+func (this *Socket) listenForMessages(wg sync.WaitGroup) {
+    defer wg.Done()
     for {
         
         select {
             case <- this.done:
-                this.Close()
                 return
             
             default:
@@ -88,7 +88,8 @@ func (this *Socket) listenForMessages() {
     }
 }
 
-func (this *Socket) listenForWrites() {
+func (this *Socket) listenForWrites(wg sync.WaitGroup) {
+    defer wg.Done()
     for {
         select {
             case message := <-this.buff:
@@ -96,10 +97,10 @@ func (this *Socket) listenForWrites() {
                 if err := websocket.JSON.Send(this.ws, message); err != nil {
                     if DEBUG { log.Printf("Error: %s\n", err.Error()) }
                     this.Close()
+                    return
                 }
                 
             case <-this.done:
-                this.Close()
                 return
         }
     }

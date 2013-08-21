@@ -8,6 +8,7 @@ import (
     "time"
     "io"
     "fmt"
+    "sync"
 
     "code.google.com/p/go.net/websocket"
 )
@@ -58,10 +59,14 @@ func (this *Server) initSocketListener() {
             return
         }
     
-        go sock.listenForMessages()
-        go sock.listenForWrites()
+        var wg sync.WaitGroup
+        wg.Add(2)
         
-        <-sock.done
+        go sock.listenForMessages(wg)
+        go sock.listenForWrites(wg)
+        
+        wg.Wait()
+        if DEBUG { log.Println("Socket Closed") }
     }
     
     http.Handle("/socket", websocket.Handler(Connect))
