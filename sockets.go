@@ -77,7 +77,7 @@ func (this *Socket) Authenticate() error {
     return nil
 }
 
-func (this *Socket) listenForMessages(wg sync.WaitGroup) {
+func (this *Socket) listenForMessages(wg *sync.WaitGroup) {
     defer wg.Done()
     for {
         
@@ -103,7 +103,7 @@ func (this *Socket) listenForMessages(wg sync.WaitGroup) {
     }
 }
 
-func (this *Socket) listenForWrites(wg sync.WaitGroup) {
+func (this *Socket) listenForWrites(wg *sync.WaitGroup) {
     defer wg.Done()
     for {
         select {

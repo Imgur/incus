@@ -51,7 +51,6 @@ func main() {
 func (this *Server) initSocketListener() {
     Connect := func(ws *websocket.Conn) {
         sock := newSocket(ws, this, "")
-        defer sock.Close()
         
         if DEBUG { log.Printf("Socket connected via %s\n", ws.RemoteAddr()) }
         if err := sock.Authenticate(); err != nil {
@@ -62,8 +61,8 @@ func (this *Server) initSocketListener() {
         var wg sync.WaitGroup
         wg.Add(2)
         
-        go sock.listenForMessages(wg)
-        go sock.listenForWrites(wg)
+        go sock.listenForMessages(&wg)
+        go sock.listenForWrites(&wg)
         
         wg.Wait()
         if DEBUG { log.Println("Socket Closed") }
