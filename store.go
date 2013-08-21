@@ -20,7 +20,7 @@ func initStore(Config *Configuration) Storage {
     }
     
     var Store = Storage{
-        MemoryStore{make(map[string] *Socket), 0, make(map[string] *Page)},
+        MemoryStore{make(map[string]map[string] *Socket), make(map[string] map[string] *Socket), 0},
         redisStore,
         
         store_type,
@@ -29,11 +29,11 @@ func initStore(Config *Configuration) Storage {
     return Store
 }
 
-func (this *Storage) Save(UID string, s *Socket) (error) {
-    this.memory.Save(UID, s)
+func (this *Storage) Save(sock *Socket) (error) {
+    this.memory.Save(sock)
     
     if this.StorageType == "redis" {
-        if err := this.redis.Save(UID); err != nil {
+        if err := this.redis.Save(sock); err != nil {
             return err
         }
     }
@@ -41,11 +41,11 @@ func (this *Storage) Save(UID string, s *Socket) (error) {
     return nil
 }
 
-func (this *Storage) Remove(UID string) (error) {
-    this.memory.Remove(UID)
+func (this *Storage) Remove(sock *Socket) (error) {
+    this.memory.Remove(sock)
     
     if this.StorageType == "redis" {
-        if err := this.redis.Remove(UID); err != nil {
+        if err := this.redis.Remove(sock); err != nil {
             return err
         }
     }
@@ -53,11 +53,11 @@ func (this *Storage) Remove(UID string) (error) {
     return nil
 }
 
-func (this *Storage) Client(UID string) (*Socket, error) {
+func (this *Storage) Client(UID string) (map[string]*Socket, error) {
     return this.memory.Client(UID)
 }
 
-func (this *Storage) Clients() (map[string] *Socket) {
+func (this *Storage) Clients() (map[string]map[string]*Socket) {
     return this.memory.Clients()
 }
 
@@ -77,11 +77,11 @@ func (this *Storage) Count() (int64, error) {
     return this.memory.Count()
 }
 
-func (this *Storage) SetPage(UID string, page string) error {
-    this.memory.SetPage(UID, page)
+func (this *Storage) SetPage(sock *Socket) error {
+    this.memory.SetPage(sock)
     
     if this.StorageType == "redis" {
-        if err := this.redis.SetPage(UID, page); err != nil {
+        if err := this.redis.SetPage(sock); err != nil {
             return err
         }
     }
@@ -89,11 +89,11 @@ func (this *Storage) SetPage(UID string, page string) error {
     return nil
 }
 
-func (this *Storage) UnsetPage(UID string, page string) error {
-    this.memory.UnsetPage(UID, page)
+func (this *Storage) UnsetPage(sock *Socket) error {
+    this.memory.UnsetPage(sock)
     
     if this.StorageType == "redis" {
-        if err := this.redis.UnsetPage(UID, page); err != nil {
+        if err := this.redis.UnsetPage(sock); err != nil {
             return err
         }
     }
@@ -101,6 +101,6 @@ func (this *Storage) UnsetPage(UID string, page string) error {
     return nil
 }
 
-func (this *Storage) getPage(page string) *Page {
+func (this *Storage) getPage(page string) map[string]*Socket {
     return this.memory.getPage(page)
 }

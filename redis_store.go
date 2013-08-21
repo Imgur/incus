@@ -130,14 +130,14 @@ func (this *RedisStore) Publish(channel string, message string) {
     publisher.Quit()
 }
 
-func (this *RedisStore) Save(UID string) (error) {
+func (this *RedisStore) Save(sock *Socket) (error) {
     client, err := this.GetConn()
     if(err != nil) {
         return err
     }
     defer this.CloseConn(client)
  
-    _, err = client.SAdd(this.clientsKey, UID)
+    _, err = client.SAdd(this.clientsKey, sock.UID)
     if err != nil {
         return err
     }
@@ -145,14 +145,14 @@ func (this *RedisStore) Save(UID string) (error) {
     return nil
 }
 
-func (this *RedisStore) Remove(UID string) (error) {
+func (this *RedisStore) Remove(sock *Socket) (error) {
     client, err := this.GetConn()
     if(err != nil) {
         return err
     }
     defer this.CloseConn(client)
  
-    _, err = client.SRem(this.clientsKey, UID)
+    _, err = client.SRem(this.clientsKey, sock.UID)
     if err != nil {
         return err
     }
@@ -190,14 +190,14 @@ func (this *RedisStore) Count() (int64, error) {
     return socks, nil
 }
 
-func (this *RedisStore) SetPage(UID string, page string) error {
+func (this *RedisStore) SetPage(sock *Socket) error {
     client, err := this.GetConn()
     if(err != nil) {
         return err
     }
     defer this.CloseConn(client)
  
-    _, err = client.HIncrBy(this.pageKey, page, 1)
+    _, err = client.HIncrBy(this.pageKey, sock.Page, 1)
     if err != nil {
         return err
     }
@@ -205,7 +205,7 @@ func (this *RedisStore) SetPage(UID string, page string) error {
     return nil
 }
 
-func (this *RedisStore) UnsetPage(UID string, page string) error {
+func (this *RedisStore) UnsetPage(sock *Socket) error {
     client, err := this.GetConn()
     if(err != nil) {
         return err
@@ -213,13 +213,13 @@ func (this *RedisStore) UnsetPage(UID string, page string) error {
     defer this.CloseConn(client)
  
     var i int64
-    i, err = client.HIncrBy(this.pageKey, page, -1)
+    i, err = client.HIncrBy(this.pageKey, sock.Page, -1)
     if err != nil {
         return err
     }
     
     if i < 0 {
-        client.HSet(this.pageKey, page, "0")
+        client.HSet(this.pageKey, sock.Page, "0")
     }
     
     return nil

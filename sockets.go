@@ -5,33 +5,47 @@ import (
     "strings"
     "errors"
     "sync"
+    "fmt"
 
     "code.google.com/p/go.net/websocket"
 )
 
-var i = 0
+var socketIds chan string
 type Socket struct {
+    SID    string  // socket ID, randomly generated
+    UID    string  // User ID, passed in via client
+    Page   string  // Current page, if set.
+    
     ws     *websocket.Conn
-    UID    string
-    Page   string
     buff   chan *Message
     done   chan bool
     Server *Server
 }
 
+func init() {
+    socketIds = make(chan string)
+    
+    go func() {
+        var i = 0
+        for {
+            i++
+            socketIds <- fmt.Sprintf("%v", i)
+        }
+    }()
+}
+
 func newSocket(ws *websocket.Conn, server *Server, UID string) *Socket {
-    return &Socket{ws, UID, "", make(chan *Message, 1000), make(chan bool), server}
+    return &Socket{<-socketIds, UID, "", ws, make(chan *Message, 1000), make(chan bool), server}
 }
 
 func (this *Socket) Close() error {
-    i++
-    if DEBUG { log.Printf("CLOSING SOCK %s -- %v", this.Page, i) }
+    if DEBUG { log.Printf("CLOSING SOCK %s", this.Page) }
     if this.Page != "" {
-        this.Server.Store.UnsetPage(this.UID, this.Page)
+        this.Server.Store.UnsetPage(this)
         this.Page = ""
     }
     
-    this.Server.Store.Remove(this.UID)
+    this.Server.Store.Remove(this)
     this.done <- true
     
     return nil
@@ -56,8 +70,9 @@ func (this *Socket) Authenticate() error {
     }
     
     if DEBUG { log.Printf("saving UID as %s", UID) }
+    
     this.UID = UID
-    this.Server.Store.Save(UID, this)
+    this.Server.Store.Save(this)
         
     return nil
 }

@@ -39,11 +39,11 @@ func (this *Message) FromSocket(sock *Socket) {
         }
 
         if sock.Page != "" {
-            sock.Server.Store.UnsetPage(sock.UID, sock.Page)  //remove old page if it exists
+            sock.Server.Store.UnsetPage(sock)  //remove old page if it exists
         }
         
         sock.Page = page
-        sock.Server.Store.SetPage(sock.UID, page) // set new page
+        sock.Server.Store.SetPage(sock) // set new page
     }
 }
 
@@ -69,13 +69,13 @@ func (this *Message) FromRedis(server *Server) {
             return
         }
 
-        pageStruct := server.Store.getPage(page)
-        if pageStruct == nil {
+        pageMap := server.Store.getPage(page)
+        if pageMap == nil {
             return
         }
         
-        clients := pageStruct.Clients() 
-        for _, sock := range clients {
+        
+        for _, sock := range pageMap {
             sock.buff <- msg
         }
 
@@ -107,12 +107,14 @@ func (this *Message) messageUser(server *Server) {
         return
     }
     
-    rec, err := server.Store.Client(UID)
+    user, err := server.Store.Client(UID)
     if err != nil {
         return
     }
     
-    rec.buff <- msg
+    for _, sock := range user {
+        sock.buff <- msg
+    }
 }
 
 func (this *Message) messageAll(server *Server) {
@@ -123,8 +125,10 @@ func (this *Message) messageAll(server *Server) {
 
     clients := server.Store.Clients()
     
-    for _, sock := range clients {
-        sock.buff <- msg
+    for _, user := range clients {
+        for _, sock := range user {
+            sock.buff <- msg
+        }
     }
     
     return
