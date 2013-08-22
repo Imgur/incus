@@ -18,6 +18,8 @@ func (this *Message) FromSocket(sock *Socket) {
     
     switch this.Event {
     case "MessageUser":
+        if(!CLIENT_BROAD) { return }
+        
         if(sock.Server.Store.StorageType == "redis") {
             this.forwardToRedis(sock.Server)
             return 
@@ -26,6 +28,8 @@ func (this *Message) FromSocket(sock *Socket) {
         this.messageUser(sock.Server)
         
     case "MessageAll":
+        if(!CLIENT_BROAD) { return }
+    
         if(sock.Server.Store.StorageType == "redis") {
             this.forwardToRedis(sock.Server)
             return

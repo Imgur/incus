@@ -18,7 +18,7 @@ func initConfig() Configuration {
         log.Panic(err)
     }
 
-    return Configuration{mymap}    
+    return Configuration{mymap}
 }
 
 func (this *Configuration) Get(name string) string {
@@ -42,4 +42,13 @@ func (this *Configuration) GetInt(name string) int {
     }
     
     return i
+}
+
+func (this *Configuration) GetBool(name string) bool {
+    val, ok := this.vars[name]
+    if !ok {
+        log.Panicf("Config Error: variable '%s' not found", name)
+    }
+    
+    return val == "true"
 }

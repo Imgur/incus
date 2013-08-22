@@ -13,8 +13,8 @@ import (
     "code.google.com/p/go.net/websocket"
 )
 
-var DEV bool
 var DEBUG bool
+var CLIENT_BROAD bool
 
 type Server struct {
     ID      string
@@ -35,6 +35,7 @@ func main() {
     store := initStore(&conf)
     initLogger(conf)
     
+    CLIENT_BROAD = conf.GetBool("client_broadcasts")
     server := createServer(&conf, &store)
     
     go server.initAppListner()
