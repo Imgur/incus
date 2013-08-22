@@ -79,7 +79,6 @@ func (this *Server) initAppListner() {
         log.Fatal("Couldn't subscribe to redis channel")
     }
     defer consumer.Quit()
-    <- rec // ignore subscribe command
     
     if DEBUG { log.Println("LISENING FOR REDIS MESSAGE") }
     var ms []string

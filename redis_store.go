@@ -115,6 +115,8 @@ func (this *RedisStore) Subscribe(c chan []string, channel string) (*redis.Clien
     }
     
     go consumer.Subscribe(c, channel)
+    <- c // ignore subscribe command
+    
     return consumer, nil
 }
 
