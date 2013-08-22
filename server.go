@@ -31,6 +31,15 @@ func createServer(conf *Configuration, store *Storage) *Server{
 }
 
 func main() {
+    defer func() {
+        if err := recover(); err != nil {
+            log.Println("FATAL: ", err)
+
+            log.Println("clearing redis memory")
+            log.Println("Shutting down")
+        }
+    }()
+
     conf  := initConfig()
     store := initStore(&conf)
     initLogger(conf)
