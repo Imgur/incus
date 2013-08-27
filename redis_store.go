@@ -26,9 +26,9 @@ type redisPool struct {
     connFn      func() (*redis.Client, error) // function to create new connection.
 }
 
-func newRedisStore(redis_host string, redis_port uint) (RedisStore) {
+func newRedisStore(redis_host string, redis_port uint) (*RedisStore) {
     
-    return RedisStore{
+    return &RedisStore{
         ClientsKey,
         PageKey,
         

@@ -3,8 +3,8 @@ package main
 import "sync"
 
 type Storage struct {
-    memory      MemoryStore
-    redis       RedisStore
+    memory      *MemoryStore
+    redis       *RedisStore
     StorageType string
     
     userMu      sync.Mutex
@@ -13,7 +13,7 @@ type Storage struct {
 
 func initStore(Config *Configuration) Storage {
     store_type := "memory"
-    var redisStore RedisStore
+    var redisStore *RedisStore
     
     redis_enabled := Config.Get("redis_enabled");
     if(redis_enabled == "true") {
@@ -25,7 +25,7 @@ func initStore(Config *Configuration) Storage {
     }
     
     var Store = Storage{
-        MemoryStore{make(map[string]map[string] *Socket), make(map[string] map[string] *Socket), 0},
+        &MemoryStore{make(map[string]map[string] *Socket), make(map[string] map[string] *Socket), 0},
         redisStore,
         store_type,
         

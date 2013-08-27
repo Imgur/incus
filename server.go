@@ -9,6 +9,7 @@ import (
     "io"
     "fmt"
     "sync"
+    _ "net/http/pprof"
 
     "code.google.com/p/go.net/websocket"
 )
