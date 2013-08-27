@@ -12,6 +12,8 @@ pidfile="/var/run/${prog}.pid"
 # make sure full path to executable binary is found
 ! [ -x $progpath ] && echo "$progpath: executable not found" && exit 1
 
+ulimit -n 1000000
+
 eval_cmd() {
   local rc=$1
   if [ $rc -eq 0 ]; then
