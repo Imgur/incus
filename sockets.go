@@ -92,7 +92,7 @@ func (this *Socket) listenForMessages(wg *sync.WaitGroup) {
                 if err != nil {
                     if DEBUG { log.Printf("Error: %s\n", err.Error()) }
                     
-                    this.Close()
+                    go this.Close()
                     return 
                 }
                 if DEBUG { log.Println(message) }
@@ -111,7 +111,7 @@ func (this *Socket) listenForWrites(wg *sync.WaitGroup) {
                 if DEBUG { log.Println("Sending:", message) }
                 if err := websocket.JSON.Send(this.ws, message); err != nil {
                     if DEBUG { log.Printf("Error: %s\n", err.Error()) }
-                    this.Close()
+                    go this.Close()
                     return
                 }
                 
