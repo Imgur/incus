@@ -21,7 +21,7 @@ type RedisStore struct {
 
 //connection pool implimentation
 type redisPool struct {
-    connections []*redis.Client
+    connections chan *redis.Client
     maxIdle     int
     connFn      func() (*redis.Client, error) // function to create new connection.
 }
@@ -36,7 +36,7 @@ func newRedisStore(redis_host string, redis_port uint) (*RedisStore) {
         redis_port,
         
         redisPool{
-            connections: []*redis.Client{},
+            connections: make(chan *redis.Client, 6),
             maxIdle:     6,
             
             connFn:      func () (*redis.Client, error) {
@@ -56,17 +56,19 @@ func newRedisStore(redis_host string, redis_port uint) (*RedisStore) {
 }
 
 func (this *redisPool) Get() (*redis.Client, bool) {
-    if(len(this.connections) == 0) {
-        conn, err := this.connFn()
-        if err != nil {
-            return nil, false
-        }
-        
-        return conn, true
-    }
     
     var conn *redis.Client
-    conn, this.connections = this.connections[len(this.connections)-1], this.connections[:len(this.connections)-1]
+    select {
+        case conn = <-this.connections:
+        default:
+            conn, err := this.connFn()
+            if err != nil {
+                return nil, false
+            }
+            
+            return conn, true
+    }
+    
     if err := this.testConn(conn); err != nil {
         return this.Get() // if connection is bad, get the next one in line until base case is hit, then create new client
     }
@@ -75,12 +77,12 @@ func (this *redisPool) Get() (*redis.Client, bool) {
 }
 
 func (this *redisPool) Close(conn *redis.Client) {
-    if(len(this.connections) < this.maxIdle) {
-        this.connections = append(this.connections, conn)
-        return
+    select {
+        case this.connections <- conn:
+            return
+        default:
+            conn.Quit()
     }
-    
-    conn.Quit()
 }
 
 func (this *redisPool) testConn(conn *redis.Client) error {
