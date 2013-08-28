@@ -26,7 +26,7 @@ func init() {
     socketIds = make(chan string)
     
     go func() {
-        var i = 0
+        var i = 1
         for {
             i++
             socketIds <- fmt.Sprintf("%v", i)
