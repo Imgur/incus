@@ -38,7 +38,7 @@ func (this *Message) FromSocket(sock *Socket) {
         this.messageAll(sock.Server)
     case "SetPage":
         page, ok := this.Body["Page"].(string)
-        if !ok {
+        if !ok || page == "" {
             return
         }
 

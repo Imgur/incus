@@ -44,6 +44,15 @@ func main() {
     conf  := initConfig()
     store := initStore(&conf)
     initLogger(conf)
+
+    go func() {
+        for {
+            log.Println(store.memory.pages)
+            log.Println(len(store.memory.pages))
+            time.Sleep(20 * time.Second)
+        }
+    }()
+
     
     CLIENT_BROAD = conf.GetBool("client_broadcasts")
     server := createServer(&conf, &store)

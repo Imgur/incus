@@ -12,9 +12,9 @@ import (
 
 
 func main() {
-//    pageSample()
+    pageSample()
 //mapsSample()
-    pageUpdates()
+//    pageUpdates()
 }
 
 func random(min, max int) int {
@@ -46,14 +46,14 @@ func pageSample() {
     shut := make(chan bool)
     store := []*websocket.Conn{}
     
-    for i := 0; i < 1020; i++ {
+    for i := 0; i < 26000; i++ {
         
             ws, err := websocket.Dial("ws://localhost:4000/socket", "", "http://localhost/")
             if err != nil {
                 log.Printf("initSocketListener Test failed, Could not connect")
             }
             
-            Auth := fmt.Sprintf("{\"Event\":\"Authenticate\",\"Body\":{\"UID\":\"%v\"},\"Time\":1376138699}", random(0, 100000))
+            Auth := fmt.Sprintf("{\"Event\":\"Authenticate\",\"Body\":{\"UID\":\"%v\"},\"Time\":1376138699}", i)
             if err := websocket.Message.Send(ws, Auth); err != nil {
                 log.Fatal("Authenticate Test failed, Could not send Auth message")
             }
@@ -64,7 +64,7 @@ func pageSample() {
             }
             
             store = append(store, ws)
-        time.Sleep(20 * time.Millisecond)
+  //      time.Sleep(20 * time.Millisecond)
     }
     
                 <-shut
