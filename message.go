@@ -78,7 +78,6 @@ func (this *Message) FromRedis(server *Server) {
             return
         }
         
-        
         for _, sock := range pageMap {
             sock.buff <- msg
         }
