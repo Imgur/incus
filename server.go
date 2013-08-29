@@ -47,8 +47,7 @@ func main() {
 
     go func() {
         for {
-            log.Println(store.memory.pages)
-            log.Println(len(store.memory.pages))
+            log.Println(store.memory.clientCount)
             time.Sleep(20 * time.Second)
         }
     }()
