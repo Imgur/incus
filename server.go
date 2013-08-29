@@ -61,7 +61,8 @@ func main() {
     go server.initSocketListener()
     
     listenAddr := fmt.Sprintf(":%s", conf.Get("listening_port"))
-    http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./js/"))))
+    
+    http.HandleFunc("/ping", pingHandler)
     err := http.ListenAndServe(listenAddr, nil)
     if err != nil {
         log.Fatal(err)
@@ -110,5 +111,9 @@ func (this *Server) initAppListner() {
         
         if DEBUG { log.Printf("Received %v\n", msg.Event) }
     }  
+}
+
+func pingHandler(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprint(w, "OK")
 }
     
