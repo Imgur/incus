@@ -22,7 +22,11 @@ func (this *MemoryStore) Save(sock *Socket) (error) {
         return nil
     }
     
+    _, exists = user[sock.SID]
     user[sock.SID] = sock
+    if !exists {
+        this.clientCount++
+    }
     
     return nil
 }
