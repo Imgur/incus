@@ -9,6 +9,9 @@ import (
     "io"
     "fmt"
     "sync"
+    "os"
+    "os/signal"
+    "syscall"
     _ "net/http/pprof"
 
     "code.google.com/p/go.net/websocket"
@@ -36,8 +39,8 @@ func main() {
         if err := recover(); err != nil {
             log.Println("FATAL: ", err)
 
-            log.Println("clearing redis memory")
-            log.Println("Shutting down")
+            log.Println("clearing redis memory...")
+            log.Println("Shutting down...")
         }
     }()
 
@@ -51,7 +54,10 @@ func main() {
             time.Sleep(20 * time.Second)
         }
     }()
-
+    
+    signals := make(chan os.Signal, 1)
+    signal.Notify(signals, syscall.SIGINT, syscall.SIGUSR1)
+    InstallSignalHandlers(signals)
     
     CLIENT_BROAD = conf.GetBool("client_broadcasts")
     server := createServer(&conf, &store)
@@ -115,4 +121,15 @@ func (this *Server) initAppListner() {
 func pingHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprint(w, "OK")
 }
-    
+
+func InstallSignalHandlers(signals chan os.Signal) {
+    go func() {
+        sig := <-signals
+        switch sig {
+        case syscall.SIGINT:
+            log.Println("\nCtrl-C signalled\n")
+            os.Exit(0)
+        }
+    }()
+}
+
