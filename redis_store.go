@@ -222,8 +222,8 @@ func (this *RedisStore) UnsetPage(sock *Socket) error {
         return err
     }
     
-    if i < 0 {
-        client.HSet(this.pageKey, sock.Page, "0")
+    if i <= 0 {
+        client.HDel(this.pageKey, sock.Page)
     }
     
     return nil
