@@ -36,7 +36,7 @@ func main() {
     }()
     
     signals := make(chan os.Signal, 1)
-    signal.Notify(signals, syscall.SIGINT, syscall.SIGUSR1)
+    signal.Notify(signals, syscall.SIGINT, syscall.SIGKILL)
     InstallSignalHandlers(signals)
     
     CLIENT_BROAD = conf.GetBool("client_broadcasts")
@@ -57,6 +57,7 @@ func InstallSignalHandlers(signals chan os.Signal) {
     go func() {
         sig := <-signals
         switch sig {
+        case syscall.SIGKILL: fallthrough;
         case syscall.SIGINT:
             log.Println("\nCtrl-C signalled\n")
             os.Exit(0)
