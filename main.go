@@ -14,7 +14,6 @@ import (
 var DEBUG bool
 var CLIENT_BROAD bool
 
-
 func main() {
     defer func() {
         if err := recover(); err != nil {
@@ -63,4 +62,18 @@ func InstallSignalHandlers(signals chan os.Signal) {
             os.Exit(0)
         }
     }()
+}
+
+func initLogger(conf Configuration) {
+    fi, err := os.OpenFile("/var/log/incus.log", os.O_RDWR|os.O_APPEND, 0660);
+    if err != nil {
+        log.Fatalf("Error: %v", err.Error());
+    }
+    
+    log.SetOutput(fi)
+    
+    DEBUG = false
+    if conf.Get("log_level") == "debug" {
+        DEBUG = true
+    }
 }
