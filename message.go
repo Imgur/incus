@@ -9,13 +9,13 @@ import (
 
 type Command struct {
     command map[string]string
-    payload map[string]interface{}
+    message map[string]interface{}
 }
 
 type Message struct {
-    Event string
-    Body map[string]interface{}
-    Time int64
+    event string
+    data  map[string]interface{}
+    time  int64
 }
 
 func (this *Command) FromSocket(sock *Socket) {
