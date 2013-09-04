@@ -85,16 +85,16 @@ func (this *CommandMsg) sendMessage(server *Server) {
     user, userok := this.Command["user"]
     page, pageok := this.Command["page"]
 
-    if(pageok) {    
-        this.messagePage(page, user, server)
-    } else if(userok) {
-        this.messageUser(user, server)
+    if(userok) {    
+        this.messageUser(user, page, server)
+    } else if(pageok) {
+        this.messagePage(page, server)
     } else {
         this.messageAll(server)
     }
 }
 
-func (this *CommandMsg) messageUser(UID string, server *Server) {
+func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
     msg, err := this.formatMessage()
     if err != nil {
         return
@@ -106,6 +106,10 @@ func (this *CommandMsg) messageUser(UID string, server *Server) {
     }
     
     for _, sock := range user {
+        if page != "" && page != sock.Page {
+            continue
+        }
+        
         sock.buff <- msg
     }
 }
@@ -127,7 +131,7 @@ func (this *CommandMsg) messageAll(server *Server) {
     return
 }
 
-func (this *CommandMsg) messagePage(page string, UID string, server *Server) {
+func (this *CommandMsg) messagePage(page string, server *Server) {
     msg, err := this.formatMessage()
     if err != nil {
         return
@@ -138,11 +142,7 @@ func (this *CommandMsg) messagePage(page string, UID string, server *Server) {
         return
     }
     
-    for _, sock := range pageMap {
-        if UID != "" && UID != sock.UID {
-            continue
-        }
-        
+    for _, sock := range pageMap {        
         sock.buff <- msg
     }
 
