@@ -5,24 +5,30 @@ import (
     "encoding/json"
     "errors"
     "time"
+    "strings"
 )
 
-type Command struct {
-    command map[string]string
-    message map[string]interface{}
+type CommandMsg struct {
+    Command map[string]string
+    Message map[string]interface{}
 }
 
 type Message struct {
-    event string
-    data  map[string]interface{}
-    time  int64
+    Event string                 `json:"event"`
+    Data  map[string]interface{} `json:"data"`
+    Time  int64                  `json:"time"`
 }
 
-func (this *Command) FromSocket(sock *Socket) {
-    if DEBUG { log.Printf("Handling socket message of type %s\n", this.Event) }
+func (this *CommandMsg) FromSocket(sock *Socket) {
+    command, ok := this.Command["command"]
+    if !ok {
+        return
+    }
     
-    switch this.parseCommand() {
-    case "MessageUser":
+    if DEBUG { log.Printf("Handling socket message of type %s\n", command) }
+    
+    switch strings.ToLower(command) {
+    case "message":
         if(!CLIENT_BROAD) { return }
         
         if(sock.Server.Store.StorageType == "redis") {
@@ -30,20 +36,10 @@ func (this *Command) FromSocket(sock *Socket) {
             return 
         }
         
-        this.messageUser(sock.Server)
-        
-    case "MessageAll":
-        if(!CLIENT_BROAD) { return }
-    
-        if(sock.Server.Store.StorageType == "redis") {
-            this.forwardToRedis(sock.Server)
-            return
-        }
-        
-        this.messageAll(sock.Server)
+        this.sendMessage(sock.Server)
 
-    case "SetPage":
-        page, ok := this.Command["SetPage"]
+    case "setpage":
+        page, ok := this.Command["page"]
         if !ok || page == "" {
             return
         }
@@ -57,62 +53,50 @@ func (this *Command) FromSocket(sock *Socket) {
     }
 }
 
-func (this *Command) FromRedis(server *Server) {
-    if DEBUG { log.Printf("Handling redis message of type %s\n", this.Event) }
-    
-    switch this.parseCommand() {
-    
-    case "MessageUser":
-        this.messageUser(server)
-    
-    case "MessageAll":
-        this.messageAll(server)
-
-    case "MessagePage": 
-        msg, err := this.formatBody()
-        if err != nil {
-            return
-        }
-
-        page, ok := this.Body["Page"].(string)
-        if !ok {
-            return
-        }
-
-        pageMap := server.Store.getPage(page)
-        if pageMap == nil {
-            return
-        }
-        
-        for _, sock := range pageMap {
-            sock.buff <- msg
-        }
-
+func (this *CommandMsg) FromRedis(server *Server) {
+    command, ok := this.Command["command"]
+    if !ok {
         return
+    }
+    
+    if DEBUG { log.Printf("Handling redis message of type %s\n", command) }
+    
+    switch strings.ToLower(command) {
+    
+    case "message":
+        this.sendMessage(server)
     }
 }
 
-func (this *Command) formatPayload() (*Message, error) {
-    event, e_ok := this.Payload["Event"].(string)
-    body,  b_ok := this.Payload["Message"].(map[string]interface{})
+func (this *CommandMsg) formatMessage() (*Message, error) {
+    event, e_ok := this.Message["event"].(string)
+    data,  b_ok := this.Message["data"].(map[string]interface{})
     
     if !b_ok || ! e_ok {
-        return nil, errors.New("Could not format message body")
+        return nil, errors.New("Could not format message")
     }
     
-    msg := &Message{event, body, time.Now().UTC().Unix()};
+    msg := &Message{event, data, time.Now().UTC().Unix()};
     
     return msg, nil
 }
 
-func (this *Command) messageUser(server *Server) {
-    msg, err := this.formatPayload()
-    if err != nil {
-        return
+func (this *CommandMsg) sendMessage(server *Server) {
+    user, userok := this.Command["user"]
+    page, pageok := this.Command["page"]
+
+    if(pageok) {    
+        this.messagePage(page, user, server)
+    } else if(userok) {
+        this.messageUser(user, server)
+    } else {
+        this.messageAll(server)
     }
-    
-    UID, ok := this.Command["MessageUser"].(string)
-    if !ok {
+}
+
+func (this *CommandMsg) messageUser(UID string, server *Server) {
+    msg, err := this.formatMessage()
+    if err != nil {
         return
     }
     
@@ -126,8 +110,8 @@ func (this *Command) messageUser(server *Server) {
     }
 }
 
-func (this *Command) messageAll(server *Server) {
-    msg, err := this.formatPayload()
+func (this *CommandMsg) messageAll(server *Server) {
+    msg, err := this.formatMessage()
     if err != nil {
         return
     }
@@ -143,8 +127,29 @@ func (this *Command) messageAll(server *Server) {
     return
 }
 
-func (this *Message) forwardToRedis(server *Server) {
+func (this *CommandMsg) messagePage(page string, UID string, server *Server) {
+    msg, err := this.formatMessage()
+    if err != nil {
+        return
+    }
+
+    pageMap := server.Store.getPage(page)
+    if pageMap == nil {
+        return
+    }
+    
+    for _, sock := range pageMap {
+        if UID != "" && UID != sock.UID {
+            continue
+        }
+        
+        sock.buff <- msg
+    }
+
+    return
+}
+
+func (this *CommandMsg) forwardToRedis(server *Server) {
     msg_str, _ := json.Marshal(this)
     server.Store.redis.Publish("Message", string(msg_str)) //pass the message into redis to send message across cluster    
 }
-

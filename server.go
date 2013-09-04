@@ -62,12 +62,12 @@ func (this *Server) initAppListener() {
     if DEBUG { log.Println("LISENING FOR REDIS MESSAGE") }
     var ms []string
     for {
-        var msg Message
+        var cmd CommandMsg
         ms = <- rec
-        json.Unmarshal([]byte(ms[2]), &msg)
-        go msg.FromRedis(this)
+        json.Unmarshal([]byte(ms[2]), &cmd)
+        go cmd.FromRedis(this)
         
-        if DEBUG { log.Printf("Received %v\n", msg.Event) }
+        if DEBUG { log.Printf("Received %v\n", cmd.Command) }
     }  
 }
 

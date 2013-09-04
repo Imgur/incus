@@ -46,25 +46,26 @@ func (this *Socket) Close() error {
     }
     
     this.Server.Store.Remove(this)
-    this.done <- true
+    close(this.done)
     
     return nil
 }
 
 func (this *Socket) Authenticate() error {
-    var message Message
+    var message CommandMsg
     err := websocket.JSON.Receive(this.ws, &message)
 
-    if DEBUG { log.Println(message.Event) }
+    if DEBUG { log.Println(message.Command) }
     if err != nil {
         return err
     }
     
-    if strings.ToLower(message.Event) != "authenticate" {
+    command := message.Command["command"]
+    if strings.ToLower(command) != "authenticate" {
         return errors.New("Error: Authenticate Expected.\n")
     }
     
-    UID, ok := message.Body["UID"].(string)
+    UID, ok := message.Command["user"]
     if !ok {
         return errors.New("Error on Authenticate: Bad Input.\n")
     }
@@ -86,18 +87,17 @@ func (this *Socket) listenForMessages(wg *sync.WaitGroup) {
                 return
             
             default:
-                var message Message
-                err := websocket.JSON.Receive(this.ws, &message)
-                
+                var command CommandMsg
+                err := websocket.JSON.Receive(this.ws, &command)
                 if err != nil {
                     if DEBUG { log.Printf("Error: %s\n", err.Error()) }
                     
                     go this.Close()
                     return 
                 }
-                if DEBUG { log.Println(message) }
                 
-                go message.FromSocket(this)
+                if DEBUG { log.Println(command) }
+                go command.FromSocket(this)
         }
         
     }
