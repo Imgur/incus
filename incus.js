@@ -19,11 +19,11 @@ Incus.prototype.connect = function() {
     this.socket.onclose   = function() { self.onClose() };
 }
 
-Incus.prototype.newMessage = function(Event, Body) {
+Incus.prototype.newCommand = function(command, message) {
+    message['time'] = Math.round(new Date().getTime() / 1000);
     var obj = {
-        "Event": Event,
-        "Body": Body,
-        "Time": Math.round(new Date().getTime() / 1000)
+        "command": command,
+        "message": message,
     };
     
     return JSON.stringify(obj);
@@ -31,7 +31,7 @@ Incus.prototype.newMessage = function(Event, Body) {
 
 Incus.prototype.authenticate = function() {
     this.retries = 0;
-    var message = this.newMessage("Authenticate", {"UID": this.UID});
+    var message = this.newCommand({'command': "authenticate", 'user': this.UID}, {});
     
     this.socket.send(message);
     console.log("Authenticated");
@@ -53,9 +53,9 @@ Incus.prototype.on = function(name, func) {
 Incus.prototype.onMessage = function(e) {
     var msg = JSON.parse(e.data);
 
-    if ("Event" in msg && msg.Event in this.onMessageCbs) {
-        if(typeof this.onMessageCbs[msg.Event] == "function") {
-            this.onMessageCbs[msg.Event].call(null, msg.Body);
+    if ("event" in msg && msg.event in this.onMessageCbs) {
+        if(typeof this.onMessageCbs[msg.event] == "function") {
+            this.onMessageCbs[msg.event].call(null, msg.data);
         }
     }
 }
@@ -76,23 +76,33 @@ Incus.prototype.onClose = function() {
     }, 1000);
 }
 
-Incus.prototype.MessageUser = function(event, UID, message) { // need to send sender's UID
-    var body = {"Event": event, "UID": UID, "Message": message};
+Incus.prototype.MessageUser = function(event, UID, data) {
+    var command = {"command": "message", "user": UID};
+    var message = {"event": event, "data": data};
     
-    var msg = this.newMessage("MessageUser", body);
+    var msg = this.newCommand(command, message);
     return this.socket.send(msg);
 }
 
-Incus.prototype.MessageAll = function(event, message) {
-    var body = {"Event": event, "Message": message};
+Incus.prototype.MessagePage = function(event, page, data) {
+    var command = {"command": "message", "page": page};
+    var message = {"event": event, "data": data};
     
-    var msg = this.newMessage("MessageAll", body);
+    var msg = this.newCommand(command, message);
+    return this.socket.send(msg);
+}
+
+Incus.prototype.MessageAll = function(event, data) {
+    var command = {"command": "message"};
+    var message = {"event": event, "data": data};
+    
+    var msg = this.newCommand(command, message);
     return this.socket.send(msg);
 }
 
 Incus.prototype.setPage = function(page) {
-    var body = {"Page": page};
+    var command = {'command': 'setpage', 'page': page};
     
-    var msg = this.newMessage("SetPage", body);
+    var msg = this.newCommand(command, {});
     return this.socket.send(msg);
 }
