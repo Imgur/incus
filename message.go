@@ -7,16 +7,21 @@ import (
     "time"
 )
 
+type Command struct {
+    command map[string]string
+    payload map[string]interface{}
+}
+
 type Message struct {
     Event string
     Body map[string]interface{}
     Time int64
 }
 
-func (this *Message) FromSocket(sock *Socket) {
+func (this *Command) FromSocket(sock *Socket) {
     if DEBUG { log.Printf("Handling socket message of type %s\n", this.Event) }
     
-    switch this.Event {
+    switch this.parseCommand() {
     case "MessageUser":
         if(!CLIENT_BROAD) { return }
         
@@ -36,8 +41,9 @@ func (this *Message) FromSocket(sock *Socket) {
         }
         
         this.messageAll(sock.Server)
+
     case "SetPage":
-        page, ok := this.Body["Page"].(string)
+        page, ok := this.Command["SetPage"]
         if !ok || page == "" {
             return
         }
@@ -51,10 +57,10 @@ func (this *Message) FromSocket(sock *Socket) {
     }
 }
 
-func (this *Message) FromRedis(server *Server) {
+func (this *Command) FromRedis(server *Server) {
     if DEBUG { log.Printf("Handling redis message of type %s\n", this.Event) }
     
-    switch this.Event {
+    switch this.parseCommand() {
     
     case "MessageUser":
         this.messageUser(server)
@@ -86,9 +92,9 @@ func (this *Message) FromRedis(server *Server) {
     }
 }
 
-func (this *Message) formatBody() (*Message, error) {    
-    event, e_ok := this.Body["Event"].(string)
-    body,  b_ok := this.Body["Message"].(map[string]interface{})
+func (this *Command) formatPayload() (*Message, error) {
+    event, e_ok := this.Payload["Event"].(string)
+    body,  b_ok := this.Payload["Message"].(map[string]interface{})
     
     if !b_ok || ! e_ok {
         return nil, errors.New("Could not format message body")
@@ -99,13 +105,13 @@ func (this *Message) formatBody() (*Message, error) {
     return msg, nil
 }
 
-func (this *Message) messageUser(server *Server) {
-    msg, err := this.formatBody()
+func (this *Command) messageUser(server *Server) {
+    msg, err := this.formatPayload()
     if err != nil {
         return
     }
     
-    UID, ok := this.Body["UID"].(string)
+    UID, ok := this.Command["MessageUser"].(string)
     if !ok {
         return
     }
@@ -120,8 +126,8 @@ func (this *Message) messageUser(server *Server) {
     }
 }
 
-func (this *Message) messageAll(server *Server) {
-    msg, err := this.formatBody()
+func (this *Command) messageAll(server *Server) {
+    msg, err := this.formatPayload()
     if err != nil {
         return
     }
