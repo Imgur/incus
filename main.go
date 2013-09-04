@@ -13,20 +13,25 @@ import (
 
 var DEBUG bool
 var CLIENT_BROAD bool
+var store *Storage
 
 func main() {
+    store = nil
+    signals := make(chan os.Signal, 1)
+    
     defer func() {
         if err := recover(); err != nil {
-            log.Println("FATAL: ", err)
-
-            log.Println("clearing redis memory...")
-            log.Println("Shutting down...")
+            log.Printf("FATAL: %s", err)
+            shutdown()
         }
     }()
 
     conf  := initConfig()
-    store := initStore(&conf)
     initLogger(conf)
+    signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+    InstallSignalHandlers(signals)
+    
+    store = initStore(&conf)
 
     go func() {
         for {
@@ -35,12 +40,8 @@ func main() {
         }
     }()
     
-    signals := make(chan os.Signal, 1)
-    signal.Notify(signals, syscall.SIGINT, syscall.SIGKILL)
-    InstallSignalHandlers(signals)
-    
     CLIENT_BROAD = conf.GetBool("client_broadcasts")
-    server := createServer(&conf, &store)
+    server := createServer(&conf, store)
     
     go server.initAppListener()
     go server.initSocketListener()
@@ -56,12 +57,8 @@ func main() {
 func InstallSignalHandlers(signals chan os.Signal) {
     go func() {
         sig := <-signals
-        switch sig {
-        case syscall.SIGKILL: fallthrough;
-        case syscall.SIGINT:
-            log.Println("\nCtrl-C signalled\n")
-            os.Exit(0)
-        }
+        log.Printf("%v caught, incus is going down...", sig)
+        shutdown()
     }()
 }
 
@@ -77,4 +74,13 @@ func initLogger(conf Configuration) {
     if conf.Get("log_level") == "debug" {
         DEBUG = true
     }
+}
+
+func shutdown() {
+    if store != nil {
+        log.Println("clearing redis memory...")
+    }
+    
+    log.Println("Terminated")
+    os.Exit(0)
 }

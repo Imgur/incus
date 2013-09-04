@@ -11,7 +11,7 @@ type Storage struct {
     pageMu      sync.Mutex
 }
 
-func initStore(Config *Configuration) Storage {
+func initStore(Config *Configuration) *Storage {
     store_type := "memory"
     var redisStore *RedisStore
     
@@ -33,7 +33,7 @@ func initStore(Config *Configuration) Storage {
         sync.Mutex{},
     }
     
-    return Store
+    return &Store
 }
 
 func (this *Storage) Save(sock *Socket) (error) {
