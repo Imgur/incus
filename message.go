@@ -9,8 +9,8 @@ import (
 )
 
 type CommandMsg struct {
-    Command map[string]string
-    Message map[string]interface{}
+    Command map[string]string      `json:"command"` 
+    Message map[string]interface{} `json:"message,omitempty"`
 }
 
 type Message struct {
