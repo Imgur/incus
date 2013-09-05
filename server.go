@@ -66,8 +66,6 @@ func (this *Server) initAppListener() {
         ms = <- rec
         json.Unmarshal([]byte(ms[2]), &cmd)
         go cmd.FromRedis(this)
-        
-        if DEBUG { log.Printf("Received %v\n", cmd.Command) }
     }  
 }
 
