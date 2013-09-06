@@ -53,7 +53,7 @@ stop() {
   fi
   printf "%-50s%s" "Stopping $prog: " ''
   rm -f $pidfile
-  kill -9 $pids
+  kill $pids
   eval_cmd $?
 }
 
