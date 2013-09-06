@@ -17,10 +17,13 @@ type Socket struct {
     Page   string  // Current page, if set.
     
     ws        *websocket.Conn
+    Server    *Server
+    
     buff      chan *Message
     heartbeat <-chan time.Time
     done      chan bool
-    Server    *Server
+    
+    closed    bool
 }
 
 func init() {
@@ -36,22 +39,21 @@ func init() {
 }
 
 func newSocket(ws *websocket.Conn, server *Server, UID string) *Socket {
-    return &Socket{<-socketIds, UID, "", ws, make(chan *Message, 1000), time.After(20 * time.Second), make(chan bool), server}
+    return &Socket{<-socketIds, UID, "", ws, server, make(chan *Message, 1000), time.After(20 * time.Second), make(chan bool), false}
 }
 
 func (this *Socket) Close() error {
-    if this.done == nil {
-        return nil
+    if !this.closed {
+        this.closed = true
+        
+        if this.Page != "" {
+            this.Server.Store.UnsetPage(this)
+            this.Page = ""
+        }
+        
+        this.Server.Store.Remove(this)
+        close(this.done)
     }
-    
-    if this.Page != "" {
-        this.Server.Store.UnsetPage(this)
-        this.Page = ""
-    }
-    
-    this.Server.Store.Remove(this)
-    close(this.done)
-    this.done = nil
     
     return nil
 }
@@ -108,11 +110,7 @@ func (this *Socket) listenForMessages() {
 
 func (this *Socket) listenForWrites() {
     for {
-        select {
-            case <-this.heartbeat:
-                this.heartbeat = time.After(20 * time.Second)
-                this.buff <- newHeartbeat(this.SID)
-            
+        select {            
             case message := <-this.buff:
                 if DEBUG { log.Println("Sending:", message) }
                 if err := websocket.JSON.Send(this.ws, message); err != nil {
@@ -123,6 +121,14 @@ func (this *Socket) listenForWrites() {
                 
             case <-this.done:
                 return
+                
+            case <-this.heartbeat:
+                if this.closed {
+                    return 
+                }
+                
+                this.heartbeat = time.After(20 * time.Second)
+                this.buff <- newHeartbeat(this.SID)
         }
     }
 }
