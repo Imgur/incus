@@ -53,12 +53,12 @@ func pageSample() {
                 log.Printf("initSocketListener Test failed, Could not connect")
             }
             
-            Auth := fmt.Sprintf("{\"Event\":\"Authenticate\",\"Body\":{\"UID\":\"%v\"},\"Time\":1376138699}", i)
+            Auth := fmt.Sprintf("{\"command\":{\"command\":\"authenticate\",\"user\":\"%v\"},\"message\":{\"time\":1378493866}}", i)
             if err := websocket.Message.Send(ws, Auth); err != nil {
                 log.Fatal("Authenticate Test failed, Could not send Auth message")
             }
             
-            page := fmt.Sprintf("{\"Event\":\"SetPage\",\"Body\":{\"Page\":\"%s\"},\"Time\":1376138699}", pages[random(0, len(pages))])
+            page := fmt.Sprintf("{\"command\":{\"command\":\"setpage\",\"page\":\"%v\"},\"message\":{\"time\":1378493866}}", pages[random(0, len(pages))])
             if err := websocket.Message.Send(ws, page); err != nil {
                 log.Fatal("Authenticate Test failed, Could not send Auth message")
             }
