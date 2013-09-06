@@ -153,3 +153,10 @@ func (this *CommandMsg) forwardToRedis(server *Server) {
     msg_str, _ := json.Marshal(this)
     server.Store.redis.Publish("Message", string(msg_str)) //pass the message into redis to send message across cluster    
 }
+
+func newHeartbeat(SID string) (*Message) {
+    data := make(map[string]interface{})
+    data["sid"] = SID
+    
+    return &Message{"heartbeat", data, time.Now().UTC().Unix()}
+}

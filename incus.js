@@ -30,7 +30,6 @@ Incus.prototype.newCommand = function(command, message) {
 }
 
 Incus.prototype.authenticate = function() {
-    this.retries = 0;
     var message = this.newCommand({'command': "authenticate", 'user': this.UID}, {});
     
     this.socket.send(message);
@@ -38,7 +37,7 @@ Incus.prototype.authenticate = function() {
     
     this.connected = true;
     if("connect" in this.onMessageCbs) {
-        this.onMessageCbs["connect"].call(null)
+        this.onMessageCbs["connect"].call(null);
     }
 }
 
@@ -52,6 +51,10 @@ Incus.prototype.on = function(name, func) {
 
 Incus.prototype.onMessage = function(e) {
     var msg = JSON.parse(e.data);
+    
+    if ("event" in msg && msg.event == "heartbeat") {
+        this.retries = 0;
+    }
 
     if ("event" in msg && msg.event in this.onMessageCbs) {
         if(typeof this.onMessageCbs[msg.event] == "function") {
