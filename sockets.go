@@ -4,7 +4,6 @@ import (
     "log"
     "strings"
     "errors"
-    "sync"
     "fmt"
 
     "code.google.com/p/go.net/websocket"
@@ -39,7 +38,10 @@ func newSocket(ws *websocket.Conn, server *Server, UID string) *Socket {
 }
 
 func (this *Socket) Close() error {
-    if DEBUG { log.Printf("CLOSING SOCK %s", this.Page) }
+    if this.done == nil {
+        return nil
+    }
+    
     if this.Page != "" {
         this.Server.Store.UnsetPage(this)
         this.Page = ""
@@ -47,6 +49,7 @@ func (this *Socket) Close() error {
     
     this.Server.Store.Remove(this)
     close(this.done)
+    this.done = nil
     
     return nil
 }
@@ -78,8 +81,7 @@ func (this *Socket) Authenticate() error {
     return nil
 }
 
-func (this *Socket) listenForMessages(wg *sync.WaitGroup) {
-    defer wg.Done()
+func (this *Socket) listenForMessages() {
     for {
         
         select {
@@ -103,8 +105,7 @@ func (this *Socket) listenForMessages(wg *sync.WaitGroup) {
     }
 }
 
-func (this *Socket) listenForWrites(wg *sync.WaitGroup) {
-    defer wg.Done()
+func (this *Socket) listenForWrites() {
     for {
         select {
             case message := <-this.buff:

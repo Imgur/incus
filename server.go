@@ -8,7 +8,6 @@ import (
     "time"
     "io"
     "fmt"
-    "sync"
 
     "code.google.com/p/go.net/websocket"
 )
@@ -17,6 +16,8 @@ type Server struct {
     ID      string
     Config  *Configuration
     Store   *Storage
+    
+    timeout time.Duration
 }
 
 func createServer(conf *Configuration, store *Storage) *Server{
@@ -24,11 +25,14 @@ func createServer(conf *Configuration, store *Storage) *Server{
     io.WriteString(hash, time.Now().String())
     id := string(hash.Sum(nil))
     
-    return &Server{id, conf, store}
+    timeout := time.Duration(conf.GetInt("connection_timeout"))
+    return &Server{id, conf, store, timeout}
 }
 
 func (this *Server) initSocketListener() {
     Connect := func(ws *websocket.Conn) {
+        defer func() { if DEBUG { log.Println("Socket Closed") } }()
+        
         sock := newSocket(ws, this, "")
         
         if DEBUG { log.Printf("Socket connected via %s\n", ws.RemoteAddr()) }
@@ -36,15 +40,22 @@ func (this *Server) initSocketListener() {
             if DEBUG { log.Printf("Error: %s\n", err.Error()) }
             return
         }
-    
-        var wg sync.WaitGroup
-        wg.Add(2)
+
+        go sock.listenForMessages()
+        go sock.listenForWrites()
         
-        go sock.listenForMessages(&wg)
-        go sock.listenForWrites(&wg)
+        if this.timeout <= 0 { // if timeout is 0 then wait forever and return when socket is done.
+            <-sock.done
+            return 
+        }
         
-        wg.Wait()
-        if DEBUG { log.Println("Socket Closed") }
+        select{
+            case <- time.After(this.timeout * time.Second):
+                sock.Close()
+                return
+            case <- sock.done:
+                return
+        }
     }
     
     http.Handle("/socket", websocket.Handler(Connect))
