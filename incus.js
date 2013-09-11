@@ -50,12 +50,13 @@ Incus.prototype.on = function(name, func) {
 }
 
 Incus.prototype.onMessage = function(e) {
-    var msg = JSON.parse(e.data);
-    
-    if ("event" in msg && msg.event == "heartbeat") {
+    if (e.data === "") {
         this.retries = 0;
+        return;
     }
 
+    var msg = JSON.parse(e.data);
+    
     if ("event" in msg && msg.event in this.onMessageCbs) {
         if(typeof this.onMessageCbs[msg.event] == "function") {
             this.onMessageCbs[msg.event].call(null, msg.data);
