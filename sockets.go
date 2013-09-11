@@ -5,7 +5,6 @@ import (
     "strings"
     "errors"
     "fmt"
-    "time"
 
     "code.google.com/p/go.net/websocket"
 )
@@ -20,9 +19,7 @@ type Socket struct {
     Server    *Server
     
     buff      chan *Message
-    heartbeat <-chan time.Time
     done      chan bool
-    
     closed    bool
 }
 
@@ -39,7 +36,7 @@ func init() {
 }
 
 func newSocket(ws *websocket.Conn, server *Server, UID string) *Socket {
-    return &Socket{<-socketIds, UID, "", ws, server, make(chan *Message, 1000), time.After(20 * time.Second), make(chan bool), false}
+    return &Socket{<-socketIds, UID, "", ws, server, make(chan *Message, 1000), make(chan bool), false}
 }
 
 func (this *Socket) Close() error {
@@ -121,14 +118,6 @@ func (this *Socket) listenForWrites() {
                 
             case <-this.done:
                 return
-                
-            case <-this.heartbeat:
-                if this.closed {
-                    return 
-                }
-                
-                this.heartbeat = time.After(20 * time.Second)
-                this.buff <- newHeartbeat(this.SID)
         }
     }
 }

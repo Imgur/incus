@@ -87,3 +87,18 @@ func (this *Server) initPingListener() {
     
     http.HandleFunc("/ping", pingHandler)
 }
+
+func (this *Server) sendHeartbeats() {
+    for { 
+        time.Sleep(20 * time.Second)
+
+        clients := this.Store.Clients()
+  
+        for _, user := range clients {
+            for _, sock := range user {
+                websocket.Message.Send(sock.ws, "")
+            }
+        }
+    }
+}
+ 

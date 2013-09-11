@@ -46,6 +46,7 @@ func main() {
     go server.initAppListener()
     go server.initSocketListener()
     go server.initPingListener()
+    go server.sendHeartbeats()
     
     listenAddr := fmt.Sprintf(":%s", conf.Get("listening_port"))
     err := http.ListenAndServe(listenAddr, nil)
