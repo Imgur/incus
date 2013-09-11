@@ -8,6 +8,7 @@ import (
     "os"
     "os/signal"
     "syscall"
+    "runtime"
     _ "net/http/pprof"
 )
 
@@ -16,6 +17,8 @@ var CLIENT_BROAD bool
 var store *Storage
 
 func main() {
+    runtime.GOMAXPROCS(runtime.NumCPU())
+    
     store = nil
     signals := make(chan os.Signal, 1)
     
