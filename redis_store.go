@@ -4,7 +4,7 @@ import (
     "errors"
     "log"
     
-    "menteslibres.net/gosexy/redis"
+    "github.com/gosexy/redis"
 )
 
 const ClientsKey = "SocketClients"
@@ -221,7 +221,7 @@ func (this *RedisStore) UnsetPage(sock *Socket) error {
     if err != nil {
         return err
     }
-    
+
     if i <= 0 {
         client.HDel(this.pageKey, sock.Page)
     }
