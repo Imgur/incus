@@ -38,8 +38,9 @@ func initStore(Config *Configuration) *Storage {
 
 func (this *Storage) Save(sock *Socket) (error) {
     this.userMu.Lock()
-    
     this.memory.Save(sock)
+    this.userMu.Unlock()
+
     
     if this.StorageType == "redis" {
         if err := this.redis.Save(sock); err != nil {
@@ -47,22 +48,20 @@ func (this *Storage) Save(sock *Socket) (error) {
         }
     }
     
-    this.userMu.Unlock()
     return nil
 }
 
 func (this *Storage) Remove(sock *Socket) (error) {
-    this.userMu.Lock()
-    
+    this.userMu.Lock()    
     this.memory.Remove(sock)
+    this.userMu.Unlock()
     
     if this.StorageType == "redis" {
         if err := this.redis.Remove(sock); err != nil {
             return err
         }
     }
-    
-    this.userMu.Unlock()
+
     return nil
 }
 
@@ -91,23 +90,23 @@ func (this *Storage) Count() (int64, error) {
 }
 
 func (this *Storage) SetPage(sock *Socket) error {
-    this.pageMu.Lock()
-    
+    this.pageMu.Lock()    
     this.memory.SetPage(sock)
+    this.pageMu.Unlock()
     
     if this.StorageType == "redis" {
         if err := this.redis.SetPage(sock); err != nil {
             return err
         }
     }
-    
-    this.pageMu.Unlock()
+
     return nil
 }
 
 func (this *Storage) UnsetPage(sock *Socket) error {
     this.pageMu.Lock()
     this.memory.UnsetPage(sock)
+    this.pageMu.Unlock()
     
     if this.StorageType == "redis" {
         if err := this.redis.UnsetPage(sock); err != nil {
@@ -115,7 +114,6 @@ func (this *Storage) UnsetPage(sock *Socket) error {
         }
     }
     
-    this.pageMu.Unlock()
     return nil
 }
 
