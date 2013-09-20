@@ -5,23 +5,12 @@ import (
     "strings"
     "errors"
     "fmt"
+    "net/http"
 
     "code.google.com/p/go.net/websocket"
 )
 
 var socketIds chan string
-type Socket struct {
-    SID    string  // socket ID, randomly generated
-    UID    string  // User ID, passed in via client
-    Page   string  // Current page, if set.
-    
-    ws        *websocket.Conn
-    Server    *Server
-    
-    buff      chan *Message
-    done      chan bool
-    closed    bool
-}
 
 func init() {
     socketIds = make(chan string)
@@ -35,8 +24,30 @@ func init() {
     }()
 }
 
-func newSocket(ws *websocket.Conn, server *Server, UID string) *Socket {
-    return &Socket{<-socketIds, UID, "", ws, server, make(chan *Message, 1000), make(chan bool), false}
+func newSocket(ws *websocket.Conn, lp http.ResponseWriter, server *Server, UID string) *Socket {
+    return &Socket{<-socketIds, UID, "", ws, lp, server, make(chan *Message, 1000), make(chan bool), false}
+}
+
+type Socket struct {
+    SID    string  // socket ID, randomly generated
+    UID    string  // User ID, passed in via client
+    Page   string  // Current page, if set.
+    
+    ws        *websocket.Conn
+    lp        http.ResponseWriter
+    Server    *Server
+    
+    buff      chan *Message
+    done      chan bool
+    closed    bool
+}
+
+func (this *Socket) isWebsocket() bool {
+    return (this.ws != nil)
+}
+
+func (this *Socket) isLongPoll() bool {
+    return (this.lp != nil)
 }
 
 func (this *Socket) Close() error {
@@ -55,7 +66,7 @@ func (this *Socket) Close() error {
     return nil
 }
 
-func (this *Socket) Authenticate() error {
+func (this *Socket) Authenticate(UID string) error {
     var message CommandMsg
     err := websocket.JSON.Receive(this.ws, &message)
 
@@ -64,18 +75,24 @@ func (this *Socket) Authenticate() error {
         return err
     }
     
-    command := message.Command["command"]
-    if strings.ToLower(command) != "authenticate" {
-        return errors.New("Error: Authenticate Expected.\n")
+    if(this.isWebsocket()) {
+        command := message.Command["command"]
+        if strings.ToLower(command) != "authenticate" {
+            return errors.New("Error: Authenticate Expected.\n")
+        }
+    
+        var ok bool
+        UID, ok = message.Command["user"]
+        if !ok {
+            return errors.New("Error on Authenticate: Bad Input.\n")
+        }
     }
     
-    UID, ok := message.Command["user"]
-    if !ok {
-        return errors.New("Error on Authenticate: Bad Input.\n")
+    if UID == "" {
+        return errors.New("Error on Authenticate: Bad Input.\n") 
     }
     
     if DEBUG { log.Printf("saving UID as %s", UID) }
-    
     this.UID = UID
     this.Server.Store.Save(this)
         
@@ -110,8 +127,18 @@ func (this *Socket) listenForWrites() {
         select {            
             case message := <-this.buff:
                 if DEBUG { log.Println("Sending:", message) }
-                if err := websocket.JSON.Send(this.ws, message); err != nil {
-                    if DEBUG { log.Printf("Error: %s\n", err.Error()) }
+                
+                var err error
+                if this.isWebsocket() {
+                    err = websocket.JSON.Send(this.ws, message);
+                } else {
+                    this.lp.Header().Set("Content-Type", "application/json")
+                    _, err = fmt.Fprint(this.lp, message)
+                }
+                
+                if  this.isLongPoll() || err != nil {
+                    if DEBUG && err != nil { log.Printf("Error: %s\n", err.Error()) }
+                    
                     go this.Close()
                     return
                 }

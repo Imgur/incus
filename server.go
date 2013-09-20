@@ -33,10 +33,10 @@ func (this *Server) initSocketListener() {
     Connect := func(ws *websocket.Conn) {
         defer func() { if DEBUG { log.Println("Socket Closed") } }()
         
-        sock := newSocket(ws, this, "")
+        sock := newSocket(ws, nil, this, "")
         
         if DEBUG { log.Printf("Socket connected via %s\n", ws.RemoteAddr()) }
-        if err := sock.Authenticate(); err != nil {
+        if err := sock.Authenticate(""); err != nil {
             if DEBUG { log.Printf("Error: %s\n", err.Error()) }
             return
         }
@@ -59,6 +59,51 @@ func (this *Server) initSocketListener() {
     }
     
     http.Handle("/socket", websocket.Handler(Connect))
+}
+
+func (this *Server) initLongPollListener() {
+    LpConnect := func(w http.ResponseWriter, r *http.Request) {
+        defer func() { if DEBUG { log.Println("Socket Closed") } }()
+        
+        sock := newSocket(nil, w, this, "")
+        
+        if DEBUG { log.Printf("Long poll connected via \n") }
+        
+        if err := sock.Authenticate(r.FormValue("user")); err != nil {
+            if DEBUG { log.Printf("Error: %s\n", err.Error()) }
+            return
+        }
+        
+        page := r.FormValue("page")
+        if page != "" {
+            if sock.Page != "" {
+                this.Store.UnsetPage(sock)  //remove old page if it exists
+            }
+            
+            sock.Page = page
+            this.Store.SetPage(sock)
+        }
+        
+        command := r.FormValue("command")
+        if command != "" {
+            var cmd CommandMsg
+            json.Unmarshal([]byte(command), &cmd)
+            
+            go cmd.FromSocket(sock)
+        }
+        
+        go sock.listenForWrites()
+        
+        select{
+            case <- time.After(60 * time.Second):
+                sock.Close()
+                return
+            case <- sock.done:
+                return
+        }
+    }
+    
+    http.HandleFunc("/lp", LpConnect)
 }
 
 func (this *Server) initAppListener() {
@@ -89,6 +134,7 @@ func (this *Server) initPingListener() {
 }
 
 func (this *Server) sendHeartbeats() {
+
     for { 
         time.Sleep(20 * time.Second)
 
