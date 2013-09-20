@@ -6,12 +6,18 @@ function Incus(url, UID) {
     this.UID          = UID;
     this.onMessageCbs = {};
     this.connected    = false;
+    this.poll         = null;
     
     this.connect();
 }
 
-Incus.prototype.longpoll = function(command) {
-    var poll = new XMLHttpRequest();
+Incus.prototype.longpoll = function(command, abort) {
+    if (abort && this.poll != null) {
+        this.poll.abort();
+    }
+    
+    this.poll = new XMLHttpRequest();
+    
     var data = {'user': this.UID};
     if (this.page) {
         data['page'] = this.page;
@@ -23,25 +29,26 @@ Incus.prototype.longpoll = function(command) {
     
     var query_string = this.serialize(data);
     
-    poll.onreadystatechange = function() {
-        if (poll.readyState == 4) {
+    this.poll.onreadystatechange = function() {
+        if (this.poll.readyState == 4) {
             
             var response = {
-                'data'   : poll.responseText,
+                'data'   : this.poll.responseText,
                 'status' : 200,
                 'success': true
             };
             
             this.longpoll();
             
-            if(poll.status == 200) {
+            if(this.poll.status == 200) {
                 this.onMessage(response);
             }
         }
     }
     
-    poll.open("GET", this.url+'/lp'+query_string, true);
-    poll.send();
+    this.poll.timeout = 0;
+    this.poll.open("GET", this.url+'/lp'+query_string, true);
+    this.poll.send();
 }
 
 Incus.prototype.connect = function() {
