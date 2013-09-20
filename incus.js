@@ -10,8 +10,42 @@ function Incus(url, UID) {
     this.connect();
 }
 
+Incus.prototype.longpoll = function(command) {
+    var poll = new XMLHttpRequest();
+    var data = {'user': this.UID};
+    if (this.page) {
+        data['page'] = this.page;
+    }
+    
+    if (typeof command != 'undefined') {
+        data['command'] = command;
+    }
+    
+    var query_string = this.serialize(data);
+    
+    poll.onreadystatechange = function() {
+        if (poll.readyState == 4) {
+            
+            var response = {
+                'data'   : poll.responseText,
+                'status' : 200,
+                'success': true
+            };
+            
+            this.longpoll();
+            
+            if(poll.status == 200) {
+                this.onMessage(response);
+            }
+        }
+    }
+    
+    poll.open("GET", this.url+'/lp'+query_string, true);
+    poll.send();
+}
+
 Incus.prototype.connect = function() {
-    this.socket = new WebSocket(this.url);
+    this.socket = new WebSocket(this.url+'/socket');
     
     var self = this;
     this.socket.onopen    = function() { self.authenticate() };
@@ -105,8 +139,20 @@ Incus.prototype.MessageAll = function(event, data) {
 }
 
 Incus.prototype.setPage = function(page) {
+    this.page   = page;
     var command = {'command': 'setpage', 'page': page};
     
     var msg = this.newCommand(command, {});
     return this.socket.send(msg);
+}
+
+Incus.prototype.serialize = function(obj) {
+   var str = [];
+   
+   for(var p in obj){
+       if (obj.hasOwnProperty(p)) {
+           str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+       }
+   }
+   return '?'+str.join("&");
 }
