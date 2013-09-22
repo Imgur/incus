@@ -67,15 +67,16 @@ func (this *Socket) Close() error {
 }
 
 func (this *Socket) Authenticate(UID string) error {
-    var message CommandMsg
-    err := websocket.JSON.Receive(this.ws, &message)
-
-    if DEBUG { log.Println(message.Command) }
-    if err != nil {
-        return err
-    }
     
     if(this.isWebsocket()) {
+        var message CommandMsg
+        err := websocket.JSON.Receive(this.ws, &message)
+
+        if DEBUG { log.Println(message.Command) }
+        if err != nil {
+           return err
+        }
+
         command := message.Command["command"]
         if strings.ToLower(command) != "authenticate" {
             return errors.New("Error: Authenticate Expected.\n")
