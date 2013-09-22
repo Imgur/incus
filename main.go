@@ -48,6 +48,7 @@ func main() {
     
     go server.initAppListener()
     go server.initSocketListener()
+    go server.initLongPollListener()
     go server.initPingListener()
     go server.sendHeartbeats()
     
