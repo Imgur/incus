@@ -142,7 +142,11 @@ func (this *Server) sendHeartbeats() {
   
         for _, user := range clients {
             for _, sock := range user {
-                websocket.Message.Send(sock.ws, "")
+                
+                if sock.isWebsocket() {
+                    websocket.Message.Send(sock.ws, "")
+                }
+                
             }
         }
     }
