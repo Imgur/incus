@@ -6,6 +6,7 @@ import (
     "errors"
     "fmt"
     "net/http"
+    "encoding/json"
 
     "code.google.com/p/go.net/websocket"
 )
@@ -125,7 +126,7 @@ func (this *Socket) listenForMessages() {
 
 func (this *Socket) listenForWrites() {
     for {
-        select {            
+        select {
             case message := <-this.buff:
                 if DEBUG { log.Println("Sending:", message) }
                 
@@ -133,8 +134,9 @@ func (this *Socket) listenForWrites() {
                 if this.isWebsocket() {
                     err = websocket.JSON.Send(this.ws, message);
                 } else {
-                    this.lp.Header().Set("Content-Type", "application/json")
-                    _, err = fmt.Fprint(this.lp, message)
+                    json_str, _ := json.Marshal(message)
+                    
+                    _, err = fmt.Fprint(this.lp, string(json_str))
                 }
                 
                 if  this.isLongPoll() || err != nil {
