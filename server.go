@@ -49,7 +49,7 @@ func (this *Server) initSocketListener() {
             return 
         }
         
-        select{
+        select {
             case <- time.After(this.timeout * time.Second):
                 sock.Close()
                 return
@@ -66,6 +66,12 @@ func (this *Server) initLongPollListener() {
         defer func() { if DEBUG { log.Println("Socket Closed") } }()
         
         sock := newSocket(nil, w, this, "")
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        w.Header().Set("Content-Type", "application/json")
+        w.Header().Set("Cache-Control", "private, no-store, no-cache, must-revalidate, post-check=0, pre-check=0")
+        w.Header().Set("Connection", "keep-alive")
+        //w.Header().Set("Content-Encoding", "gzip")
+        w.WriteHeader(200)
         
         if DEBUG { log.Printf("Long poll connected via \n") }
         
