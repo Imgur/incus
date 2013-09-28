@@ -101,7 +101,7 @@ func (this *Server) initLongPollListener() {
         go sock.listenForWrites()
         
         select{
-            case <- time.After(60 * time.Second):
+            case <- time.After(30 * time.Second):
                 sock.Close()
                 return
             case <- sock.done:
