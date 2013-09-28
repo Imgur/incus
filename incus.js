@@ -40,18 +40,21 @@ Incus.prototype.longpoll = function(command) {
     var self = this;
     this.poll.onreadystatechange = function() {
         if (self.poll.readyState == 4) {
-            console.log(self.poll.status);
             var response = {
                 'data'   : self.poll.responseText,
                 'status' : self.poll.status,
                 'success': true
             };
             
-            if (self.poll.status !== 0) {
+            if (self.poll.status !== 0 && self.retries < self.MAXRETRIES) {
                 self.longpoll();
             }
             
-            if(response.status == 200 && e.data !== "") {
+            if (response.status != 200 && response.status !== 0) {
+                self.retries++;
+            }
+            
+            if(response.status == 200 && response.data !== "") {
                 self.onMessage(response);
             }
         }
@@ -76,9 +79,9 @@ Incus.prototype.connect = function() {
     this.socket = new WebSocket(url+'/socket');
     
     var self = this;
-    this.socket.onopen    = function() { self.authenticate() };
+    this.socket.onopen    = function()  { self.authenticate() };
     this.socket.onmessage = function(e) { self.onMessage(e) };
-    this.socket.onclose   = function() { self.onClose() };
+    this.socket.onclose   = function()  { self.onClose() };
 }
 
 Incus.prototype.newCommand = function(command, message) {
@@ -113,6 +116,7 @@ Incus.prototype.authenticate = function() {
 
 Incus.prototype.on = function(name, func) {
     if (name == 'connect' && this.connected) {
+        this.connectedCb = true;
         func();
     }
     
