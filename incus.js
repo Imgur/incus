@@ -1,7 +1,9 @@
 function Incus(url, UID) {
     this.MAXRETRIES   = 6;
     
-    this.retries      = 0;
+    this.socketRetries = 0;
+    this.pollRetries   = 0;
+
     this.url          = url;
     this.UID          = UID;
     this.page         = null;
@@ -46,12 +48,12 @@ Incus.prototype.longpoll = function(command) {
                 'success': true
             };
             
-            if (self.poll.status !== 0 && self.retries < self.MAXRETRIES) {
+            if (self.poll.status !== 0 && self.pollRetries < self.MAXRETRIES) {
                 self.longpoll();
             }
             
             if (response.status != 200 && response.status !== 0) {
-                self.retries++;
+                self.pollRetries++;
             }
             
             if(response.status == 200 && response.data !== "") {
@@ -75,6 +77,12 @@ Incus.prototype.longpoll = function(command) {
 Incus.prototype.connect = function() {
     this.longpoll();
     
+    if("WebSocket" in window) {
+        this.connectSocket();
+    }
+}
+
+Incus.prototype.connectSocket = function() {
     var url = this.url.replace("http", "ws").replace("https", "wss");
     this.socket = new WebSocket(url+'/socket');
     
@@ -95,6 +103,7 @@ Incus.prototype.newCommand = function(command, message) {
 }
 
 Incus.prototype.authenticate = function() {
+    console.log('authenticated');
     this.socketConnected = true;
     this.poll.abort();
     
@@ -125,7 +134,7 @@ Incus.prototype.on = function(name, func) {
 
 Incus.prototype.onMessage = function(e) {
     if (e.data === "") {
-        this.retries = 0;
+        this.socketRetries = 0;
         return;
     }
 
@@ -139,18 +148,18 @@ Incus.prototype.onMessage = function(e) {
 }
 
 Incus.prototype.onClose = function() {
-    if (this.retries > this.MAXRETRIES) {
+    if (this.socketRetries > this.MAXRETRIES) {
         return;
     }
     
-    this.retries++;
+    this.socketRetries++;
     this.connected = false;
     
     var self = this;
     window.setTimeout(function() {
         console.log("Connection closed, retrying");
         
-        self.connect();
+        self.connectSocket();
     }, 1000);
 }
 
@@ -180,10 +189,15 @@ Incus.prototype.MessageAll = function(event, data) {
 
 Incus.prototype.setPage = function(page) {
     this.page   = page;
-    var command = {'command': 'setpage', 'page': page};
     
-    var msg = this.newCommand(command, {});
-    return this.send(msg);
+    if (this.socketConnected) {
+        var command = {'command': 'setpage', 'page': page};
+    
+        var msg = this.newCommand(command, {});
+        return this.send(msg);
+    }
+    
+    this.send();
 }
 
 Incus.prototype.serialize = function(obj) {
