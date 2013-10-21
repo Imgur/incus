@@ -2,6 +2,7 @@
 
 # absolute path to executable binary
 progpath='/usr/sbin/incus'
+logpath='/var/log/incus.log'
 
 # binary program name
 prog=$(basename $progpath)
@@ -33,7 +34,7 @@ start() {
     return 0
   fi
   printf "%-50s%s" "Starting $prog: " ''
-  $progpath &
+  $progpath >> $logpath 2>&1 & 
 
   # save pid to file if you want
   echo $! > $pidfile

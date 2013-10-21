@@ -68,13 +68,6 @@ func InstallSignalHandlers(signals chan os.Signal) {
 }
 
 func initLogger(conf Configuration) {
-    fi, err := os.OpenFile("/var/log/incus.log", os.O_RDWR|os.O_APPEND, 0660);
-    if err != nil {
-        log.Fatalf("Error: %v", err.Error());
-    }
-    
-    log.SetOutput(fi)
-    
     DEBUG = false
     if conf.Get("log_level") == "debug" {
         DEBUG = true
