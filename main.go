@@ -17,7 +17,9 @@ var CLIENT_BROAD bool
 var store *Storage
 
 func main() {
-    runtime.GOMAXPROCS(runtime.NumCPU())
+    if os.Getenv("GOMAXPROCS") == "" {
+        runtime.GOMAXPROCS(runtime.NumCPU())
+    }
     
     store = nil
     signals := make(chan os.Signal, 1)
