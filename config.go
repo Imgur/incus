@@ -47,7 +47,7 @@ func (this *Configuration) GetInt(name string) int {
 func (this *Configuration) GetBool(name string) bool {
     val, ok := this.vars[name]
     if !ok {
-        log.Panicf("Config Error: variable '%s' not found", name)
+        return false
     }
     
     return val == "true"
