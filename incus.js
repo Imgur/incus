@@ -1,4 +1,4 @@
-function Incus(url, UID) {
+function Incus(url, UID, page) {
     this.MAXRETRIES   = 6;
     
     this.socketRetries = 0;
@@ -6,7 +6,7 @@ function Incus(url, UID) {
 
     this.url          = url;
     this.UID          = UID;
-    this.page         = null;
+    this.page         = page;
     
     this.onMessageCbs = {};
     this.connectedCb  = false;
@@ -20,20 +20,20 @@ function Incus(url, UID) {
 }
 
 Incus.prototype.longpoll = function(command) {
-    if (this.socketConnected) { return; }
+    if(this.socketConnected) { return; }
     
-    if (this.poll != null) {
+    if(this.poll != null) {
         this.poll.abort();
     }
     
     this.poll = new XMLHttpRequest();
     
     var data = {'user': this.UID};
-    if (this.page) {
+    if(this.page) {
         data['page'] = this.page;
     }
     
-    if (typeof command != 'undefined') {
+    if(typeof command != 'undefined') {
         data['command'] = command;
     }
     
@@ -41,18 +41,18 @@ Incus.prototype.longpoll = function(command) {
     
     var self = this;
     this.poll.onreadystatechange = function() {
-        if (self.poll.readyState == 4) {
+        if(self.poll.readyState == 4) {
             var response = {
                 'data'   : self.poll.responseText,
                 'status' : self.poll.status,
                 'success': true
             };
             
-            if (self.poll.status !== 0 && self.pollRetries < self.MAXRETRIES) {
+            if(self.poll.status !== 0 && self.pollRetries < self.MAXRETRIES) {
                 self.longpoll();
             }
             
-            if (response.status != 200 && response.status !== 0) {
+            if(response.status != 200 && response.status !== 0) {
                 self.pollRetries++;
             }
             
@@ -62,8 +62,8 @@ Incus.prototype.longpoll = function(command) {
         }
     }
     
-    this.poll.timeout = 0;
     this.poll.open("GET", this.url+'/lp'+query_string, true);
+    this.poll.timeout = 0;
     this.poll.send();
     
     this.connected = true;
@@ -83,7 +83,7 @@ Incus.prototype.connect = function() {
 }
 
 Incus.prototype.connectSocket = function() {
-    var url = this.url.replace("http", "ws").replace("https", "wss");
+    var url = this.url.replace("https", "wss").replace("http", "ws");
     this.socket = new WebSocket(url+'/socket');
     
     var self = this;
@@ -103,7 +103,6 @@ Incus.prototype.newCommand = function(command, message) {
 }
 
 Incus.prototype.authenticate = function() {
-    console.log('authenticated');
     this.socketConnected = true;
     this.poll.abort();
     
@@ -111,7 +110,7 @@ Incus.prototype.authenticate = function() {
     
     this.socket.send(message);
     
-    if (this.page) {
+    if(this.page) {
         this.setPage(this.page);
     }
     
@@ -124,7 +123,7 @@ Incus.prototype.authenticate = function() {
 }
 
 Incus.prototype.on = function(name, func) {
-    if (name == 'connect' && this.connected) {
+    if(name == 'connect' && this.connected) {
         this.connectedCb = true;
         func();
     }
@@ -133,14 +132,14 @@ Incus.prototype.on = function(name, func) {
 }
 
 Incus.prototype.onMessage = function(e) {
-    if (e.data === "") {
+    if(e.data === "") {
         this.socketRetries = 0;
         return;
     }
 
     var msg = JSON.parse(e.data);
 
-    if ("event" in msg && msg.event in this.onMessageCbs) {
+    if("event" in msg && msg.event in this.onMessageCbs) {
         if(typeof this.onMessageCbs[msg.event] == "function") {
             this.onMessageCbs[msg.event].call(null, msg.data);
         }
@@ -148,7 +147,7 @@ Incus.prototype.onMessage = function(e) {
 }
 
 Incus.prototype.onClose = function() {
-    if (this.socketRetries > this.MAXRETRIES) {
+    if(this.socketRetries > this.MAXRETRIES) {
         return;
     }
     
@@ -190,7 +189,7 @@ Incus.prototype.MessageAll = function(event, data) {
 Incus.prototype.setPage = function(page) {
     this.page   = page;
     
-    if (this.socketConnected) {
+    if(this.socketConnected) {
         var command = {'command': 'setpage', 'page': page};
     
         var msg = this.newCommand(command, {});
@@ -204,7 +203,7 @@ Incus.prototype.serialize = function(obj) {
    var str = [];
    
    for(var p in obj){
-       if (obj.hasOwnProperty(p)) {
+       if(obj.hasOwnProperty(p)) {
            str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
        }
    }
@@ -212,7 +211,7 @@ Incus.prototype.serialize = function(obj) {
 }
 
 Incus.prototype.send = function(command) {
-    if (this.socketConnected) {
+    if(this.socketConnected) {
         this.socket.send(command);
     } else {
         this.longpoll(command);
