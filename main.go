@@ -59,6 +59,15 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
+    
+    if conf.GetBool("tls_enabled") {
+        tlsListenAddr := fmt.Sprintf(":%s", conf.Get("tls_port"))
+        err = http.ListenAndServeTLS(tlsListenAddr, conf.Get("cert_file"), conf.Get("key_file"), nil)
+        if err != nil {
+            log.Fatal(err)
+        }
+    }
+    
 }
 
 func InstallSignalHandlers(signals chan os.Signal) {
