@@ -115,7 +115,7 @@ func (this *Server) initLongPollListener() {
 func (this *Server) initAppListener() {
     rec := make(chan []string)
     
-    consumer, err := this.Store.redis.Subscribe(rec, "Message")
+    consumer, err := this.Store.redis.Subscribe(rec, this.Config.Get("redis_message_channel"))
     if err != nil {
         log.Fatal("Couldn't subscribe to redis channel")
     }
