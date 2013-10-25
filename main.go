@@ -54,10 +54,8 @@ func main() {
     go server.initPingListener()
     go server.sendHeartbeats()
 
-    go listenAndServe(conf)
-    listenAndServeTLS(conf)
-    
-    
+    go listenAndServeTLS(conf)
+    listenAndServe(conf)
 }
 
 func listenAndServe(conf Configuration) {
