@@ -53,21 +53,30 @@ func main() {
     go server.initLongPollListener()
     go server.initPingListener()
     go server.sendHeartbeats()
+
+    go listenAndServe(conf)
+    listenAndServeTLS(conf)
     
+    
+}
+
+func listenAndServe(conf Configuration) {
     listenAddr := fmt.Sprintf(":%s", conf.Get("listening_port"))
     err := http.ListenAndServe(listenAddr, nil)
     if err != nil {
         log.Fatal(err)
     }
-    
+}
+
+func listenAndServeTLS(conf Configuration) {
     if conf.GetBool("tls_enabled") {
         tlsListenAddr := fmt.Sprintf(":%s", conf.Get("tls_port"))
-        err = http.ListenAndServeTLS(tlsListenAddr, conf.Get("cert_file"), conf.Get("key_file"), nil)
+        err := http.ListenAndServeTLS(tlsListenAddr, conf.Get("cert_file"), conf.Get("key_file"), nil)
         if err != nil {
+            log.Println(err)
             log.Fatal(err)
         }
     }
-    
 }
 
 func InstallSignalHandlers(signals chan os.Signal) {
