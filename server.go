@@ -124,8 +124,19 @@ func (this *Server) initAppListener() {
     if DEBUG { log.Println("LISENING FOR REDIS MESSAGE") }
     var ms []string
     for {
+        select{
+            case <- time.After(10 * time.Second):
+                if _, err := consumer.Ping(); err != nil {
+                    consumer.Quit()
+                    rec = make(chan []string)
+                    consumer, _ = this.Store.redis.Subscribe(rec, this.Config.Get("redis_message_channel"))
+                    continue
+                }
+                
+            case ms = <- rec:
+        }
+        
         var cmd CommandMsg
-        ms = <- rec
         json.Unmarshal([]byte(ms[2]), &cmd)
         go cmd.FromRedis(this)
     }  
