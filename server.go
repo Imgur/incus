@@ -130,7 +130,6 @@ func (this *Server) initLongPollListener() {
 
 func (this *Server) initAppListener() {
 	rec := make(chan []string)
-
 	consumer, err := this.Store.redis.Subscribe(rec, this.Config.Get("redis_message_channel"))
 	if err != nil {
 		log.Fatal("Couldn't subscribe to redis channel")
@@ -142,17 +141,7 @@ func (this *Server) initAppListener() {
 	}
 	var ms []string
 	for {
-		select {
-		case <-time.After(10 * time.Second):
-			if _, err := consumer.Ping(); err != nil {
-				consumer.Quit()
-				rec = make(chan []string)
-				consumer, _ = this.Store.redis.Subscribe(rec, this.Config.Get("redis_message_channel"))
-				continue
-			}
-
-		case ms = <-rec:
-		}
+		ms = <-rec
 
 		var cmd CommandMsg
 		json.Unmarshal([]byte(ms[2]), &cmd)

@@ -102,7 +102,6 @@ func (this *RedisStore) GetConn() (*redis.Client, error) {
 	}
 
 	return client, nil
-
 }
 
 func (this *RedisStore) CloseConn(conn *redis.Client) {
@@ -113,6 +112,10 @@ func (this *RedisStore) Subscribe(c chan []string, channel string) (*redis.Clien
 	consumer := redis.New()
 	err := consumer.ConnectNonBlock(this.server, this.port)
 	if err != nil {
+		return nil, err
+	}
+
+	if _, err := consumer.Ping(); err != nil {
 		return nil, err
 	}
 
