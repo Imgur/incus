@@ -1,15 +1,14 @@
 package main
 
 import (
-    "net/http"
-    "log"
-    "time"
-    "fmt"
-    "os"
-    "os/signal"
-    "syscall"
-    "runtime"
-    _ "net/http/pprof"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
+	"time"
 )
 
 var DEBUG bool
@@ -17,86 +16,86 @@ var CLIENT_BROAD bool
 var store *Storage
 
 func main() {
-    if os.Getenv("GOMAXPROCS") == "" {
-        runtime.GOMAXPROCS(runtime.NumCPU())
-    }
-    
-    store = nil
-    signals := make(chan os.Signal, 1)
-    
-    defer func() {
-        if err := recover(); err != nil {
-            log.Printf("FATAL: %s", err)
-            shutdown()
-        }
-    }()
+	if os.Getenv("GOMAXPROCS") == "" {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+	}
 
-    conf  := initConfig()
-    initLogger(conf)
-    signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-    InstallSignalHandlers(signals)
-    
-    store = initStore(&conf)
+	store = nil
+	signals := make(chan os.Signal, 1)
 
-    go func() {
-        for {
-            log.Println(store.memory.clientCount)
-            time.Sleep(20 * time.Second)
-        }
-    }()
-    
-    CLIENT_BROAD = conf.GetBool("client_broadcasts")
-    server := createServer(&conf, store)
-    
-    go server.initAppListener()
-    go server.initSocketListener()
-    go server.initLongPollListener()
-    go server.initPingListener()
-    go server.sendHeartbeats()
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("FATAL: %s", err)
+			shutdown()
+		}
+	}()
 
-    go listenAndServeTLS(conf)
-    listenAndServe(conf)
+	conf := initConfig()
+	initLogger(conf)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	InstallSignalHandlers(signals)
+
+	store = initStore(&conf)
+
+	go func() {
+		for {
+			log.Println(store.memory.clientCount)
+			time.Sleep(20 * time.Second)
+		}
+	}()
+
+	CLIENT_BROAD = conf.GetBool("client_broadcasts")
+	server := createServer(&conf, store)
+
+	go server.initAppListener()
+	go server.initSocketListener()
+	go server.initLongPollListener()
+	go server.initPingListener()
+	go server.sendHeartbeats()
+
+	go listenAndServeTLS(conf)
+	listenAndServe(conf)
 }
 
 func listenAndServe(conf Configuration) {
-    listenAddr := fmt.Sprintf(":%s", conf.Get("listening_port"))
-    err := http.ListenAndServe(listenAddr, nil)
-    if err != nil {
-        log.Fatal(err)
-    }
+	listenAddr := fmt.Sprintf(":%s", conf.Get("listening_port"))
+	err := http.ListenAndServe(listenAddr, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func listenAndServeTLS(conf Configuration) {
-    if conf.GetBool("tls_enabled") {
-        tlsListenAddr := fmt.Sprintf(":%s", conf.Get("tls_port"))
-        err := http.ListenAndServeTLS(tlsListenAddr, conf.Get("cert_file"), conf.Get("key_file"), nil)
-        if err != nil {
-            log.Println(err)
-            log.Fatal(err)
-        }
-    }
+	if conf.GetBool("tls_enabled") {
+		tlsListenAddr := fmt.Sprintf(":%s", conf.Get("tls_port"))
+		err := http.ListenAndServeTLS(tlsListenAddr, conf.Get("cert_file"), conf.Get("key_file"), nil)
+		if err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+	}
 }
 
 func InstallSignalHandlers(signals chan os.Signal) {
-    go func() {
-        sig := <-signals
-        log.Printf("%v caught, incus is going down...", sig)
-        shutdown()
-    }()
+	go func() {
+		sig := <-signals
+		log.Printf("%v caught, incus is going down...", sig)
+		shutdown()
+	}()
 }
 
 func initLogger(conf Configuration) {
-    DEBUG = false
-    if conf.Get("log_level") == "debug" {
-        DEBUG = true
-    }
+	DEBUG = false
+	if conf.Get("log_level") == "debug" {
+		DEBUG = true
+	}
 }
 
 func shutdown() {
-    if store != nil {
-        log.Println("clearing redis memory...")
-    }
-    
-    log.Println("Terminated")
-    os.Exit(0)
+	if store != nil {
+		log.Println("clearing redis memory...")
+	}
+
+	log.Println("Terminated")
+	os.Exit(0)
 }
