@@ -110,8 +110,8 @@ func (this *Server) initLongPollListener() {
 
 		command := r.FormValue("command")
 		if command != "" {
-			var cmd CommandMsg
-			json.Unmarshal([]byte(command), &cmd)
+			var cmd = new(CommandMsg)
+			json.Unmarshal([]byte(command), cmd)
 
 			go cmd.FromSocket(sock)
 		}
@@ -145,8 +145,8 @@ func (this *Server) initAppListener() {
 	for {
 		ms = <-rec
 
-		var cmd CommandMsg
-		json.Unmarshal([]byte(ms[2]), &cmd)
+		var cmd = new(CommandMsg)
+		json.Unmarshal([]byte(ms[2]), cmd)
 		go cmd.FromRedis(this)
 	}
 }

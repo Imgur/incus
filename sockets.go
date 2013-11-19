@@ -70,8 +70,8 @@ func (this *Socket) Close() error {
 func (this *Socket) Authenticate(UID string) error {
 
 	if this.isWebsocket() {
-		var message CommandMsg
-		err := websocket.JSON.Receive(this.ws, &message)
+		var message = new(CommandMsg)
+		err := websocket.JSON.Receive(this.ws, message)
 
 		if DEBUG {
 			log.Println(message.Command)
@@ -113,8 +113,8 @@ func (this *Socket) listenForMessages() {
 			return
 
 		default:
-			var command CommandMsg
-			err := websocket.JSON.Receive(this.ws, &command)
+			var command = new(CommandMsg)
+			err := websocket.JSON.Receive(this.ws, command)
 			if err != nil {
 				if DEBUG {
 					log.Printf("Error: %s\n", err.Error())
