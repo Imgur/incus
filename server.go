@@ -32,6 +32,7 @@ func createServer(conf *Configuration, store *Storage) *Server {
 func (this *Server) initSocketListener() {
 	Connect := func(ws *websocket.Conn) {
 		defer func() {
+			ws.Close()
 			if DEBUG {
 				log.Println("Socket Closed")
 			}
@@ -72,6 +73,7 @@ func (this *Server) initSocketListener() {
 func (this *Server) initLongPollListener() {
 	LpConnect := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
+			r.Body.Close()
 			if DEBUG {
 				log.Println("Socket Closed")
 			}
