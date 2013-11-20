@@ -31,23 +31,23 @@ func createServer(conf *Configuration, store *Storage) *Server {
 
 func (this *Server) initSocketListener() {
 	Connect := func(w http.ResponseWriter, r *http.Request) {
-        if r.Method != "GET" {
-                http.Error(w, "Method not allowed", 405)
-                return
-        }
-        //if r.Header.Get("Origin") != "http://"+r.Host {
-        //        http.Error(w, "Origin not allowed", 403)
-        //        return
-       // }
+		if r.Method != "GET" {
+			http.Error(w, "Method not allowed", 405)
+			return
+		}
+		//if r.Header.Get("Origin") != "http://"+r.Host {
+		//        http.Error(w, "Origin not allowed", 403)
+		//        return
+		// }
 
-        ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
-        if _, ok := err.(websocket.HandshakeError); ok {
-                http.Error(w, "Not a websocket handshake", 400)
-                return
-        } else if err != nil {
-                log.Println(err)
-                return
-        }
+		ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
+		if _, ok := err.(websocket.HandshakeError); ok {
+			http.Error(w, "Not a websocket handshake", 400)
+			return
+		} else if err != nil {
+			log.Println(err)
+			return
+		}
 
 		defer func() {
 			ws.Close()
