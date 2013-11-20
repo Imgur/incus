@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.google.com/p/go.net/websocket"
+	"github.com/gorilla/websocket"
 )
 
 var socketIds chan string
@@ -71,7 +71,7 @@ func (this *Socket) Authenticate(UID string) error {
 
 	if this.isWebsocket() {
 		var message = new(CommandMsg)
-		err := websocket.JSON.Receive(this.ws, message)
+		err := this.ws.ReadJSON(message)
 
 		if DEBUG {
 			log.Println(message.Command)
@@ -114,7 +114,7 @@ func (this *Socket) listenForMessages() {
 
 		default:
 			var command = new(CommandMsg)
-			err := websocket.JSON.Receive(this.ws, command)
+			err := this.ws.ReadJSON(command)
 			if err != nil {
 				if DEBUG {
 					log.Printf("Error: %s\n", err.Error())
@@ -142,7 +142,7 @@ func (this *Socket) listenForWrites() {
 
 			var err error
 			if this.isWebsocket() {
-				err = websocket.JSON.Send(this.ws, message)
+				err = this.ws.WriteJSON(message)
 			} else {
 				json_str, _ := json.Marshal(message)
 

@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"code.google.com/p/go.net/websocket"
+	"github.com/gorilla/websocket"
 )
 
 type Server struct {
@@ -30,7 +30,25 @@ func createServer(conf *Configuration, store *Storage) *Server {
 }
 
 func (this *Server) initSocketListener() {
-	Connect := func(ws *websocket.Conn) {
+	Connect := func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != "GET" {
+                http.Error(w, "Method not allowed", 405)
+                return
+        }
+        //if r.Header.Get("Origin") != "http://"+r.Host {
+        //        http.Error(w, "Origin not allowed", 403)
+        //        return
+       // }
+
+        ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
+        if _, ok := err.(websocket.HandshakeError); ok {
+                http.Error(w, "Not a websocket handshake", 400)
+                return
+        } else if err != nil {
+                log.Println(err)
+                return
+        }
+
 		defer func() {
 			ws.Close()
 			if DEBUG {
@@ -67,7 +85,7 @@ func (this *Server) initSocketListener() {
 		}
 	}
 
-	http.Handle("/socket", websocket.Handler(Connect))
+	http.HandleFunc("/socket", Connect)
 }
 
 func (this *Server) initLongPollListener() {
@@ -170,7 +188,7 @@ func (this *Server) sendHeartbeats() {
 			for _, sock := range user {
 
 				if sock.isWebsocket() {
-					websocket.Message.Send(sock.ws, "")
+					sock.ws.WriteMessage(websocket.PingMessage, []byte{})
 				}
 
 			}
