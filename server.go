@@ -149,22 +149,21 @@ func (this *Server) initLongPollListener() {
 }
 
 func (this *Server) initAppListener() {
-	rec := make(chan []string, 10000)
-	consumer, err := this.Store.redis.Subscribe(rec, this.Config.Get("redis_message_channel"))
+	rec := make(chan []byte, 10000)
+	_, err := this.Store.redis.Subscribe(rec, this.Config.Get("redis_message_channel"))
 	if err != nil {
 		log.Fatal("Couldn't subscribe to redis channel")
 	}
-	defer consumer.Quit()
 
 	if DEBUG {
 		log.Println("LISENING FOR REDIS MESSAGE")
 	}
-	var ms []string
+	var ms []byte
 	for {
 		ms = <-rec
-
+		log.Println(ms)
 		var cmd = new(CommandMsg)
-		json.Unmarshal([]byte(ms[2]), cmd)
+		json.Unmarshal(ms, cmd)
 		go cmd.FromRedis(this)
 	}
 }
