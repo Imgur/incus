@@ -133,8 +133,6 @@ func (this *RedisStore) Publish(channel string, message string) {
 	defer this.CloseConn(publisher)
 
 	publisher.Publish(channel, message)
-
-	publisher.Quit()
 }
 
 func (this *RedisStore) Save(sock *Socket) error {
