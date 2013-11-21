@@ -7,8 +7,8 @@ type Storage struct {
 	redis       *RedisStore
 	StorageType string
 
-	userMu sync.Mutex
-	pageMu sync.Mutex
+	userMu sync.RWMutex
+	pageMu sync.RWMutex
 }
 
 func initStore(Config *Configuration) *Storage {
@@ -29,8 +29,8 @@ func initStore(Config *Configuration) *Storage {
 		redisStore,
 		store_type,
 
-		sync.Mutex{},
-		sync.Mutex{},
+		sync.RWMutex{},
+		sync.RWMutex{},
 	}
 
 	return &Store
@@ -65,10 +65,16 @@ func (this *Storage) Remove(sock *Socket) error {
 }
 
 func (this *Storage) Client(UID string) (map[string]*Socket, error) {
+	defer this.userMu.RUnlock()
+	this.userMu.RLock()
+
 	return this.memory.Client(UID)
 }
 
 func (this *Storage) Clients() map[string]map[string]*Socket {
+	defer this.userMu.RUnlock()
+	this.userMu.RLock()
+
 	return this.memory.Clients()
 }
 
@@ -117,5 +123,7 @@ func (this *Storage) UnsetPage(sock *Socket) error {
 }
 
 func (this *Storage) getPage(page string) map[string]*Socket {
+	defer this.pageMu.RUnlock()
+	this.pageMu.RLock()
 	return this.memory.getPage(page)
 }

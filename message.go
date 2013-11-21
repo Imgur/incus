@@ -116,7 +116,9 @@ func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
 			continue
 		}
 
-		sock.buff <- msg
+		if !sock.isClosed() {
+			sock.buff <- msg
+		}
 	}
 }
 
@@ -130,7 +132,9 @@ func (this *CommandMsg) messageAll(server *Server) {
 
 	for _, user := range clients {
 		for _, sock := range user {
-			sock.buff <- msg
+			if !sock.isClosed() {
+				sock.buff <- msg
+			}
 		}
 	}
 
@@ -149,7 +153,9 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 	}
 
 	for _, sock := range pageMap {
-		sock.buff <- msg
+		if !sock.isClosed() {
+			sock.buff <- msg
+		}
 	}
 
 	return

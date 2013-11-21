@@ -188,7 +188,9 @@ func (this *Server) sendHeartbeats() {
 			for _, sock := range user {
 
 				if sock.isWebsocket() {
-					sock.ws.WriteMessage(websocket.PingMessage, []byte{})
+					if !sock.isClosed() {
+						sock.ws.WriteMessage(websocket.PingMessage, []byte{})
+					}
 				}
 
 			}
