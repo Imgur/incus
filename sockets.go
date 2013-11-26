@@ -51,6 +51,10 @@ func (this *Socket) isLongPoll() bool {
 	return (this.lp != nil)
 }
 
+func (this *Socket) isClosed() bool {
+	return this.closed
+}
+
 func (this *Socket) Close() error {
 	if !this.closed {
 		this.closed = true
