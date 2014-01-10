@@ -149,6 +149,10 @@ func (this *Server) initLongPollListener() {
 }
 
 func (this *Server) initAppListener() {
+	if !this.Config.GetBool("redis_enabled") {
+		return
+	}
+
 	rec := make(chan []string, 10000)
 	consumer, err := this.Store.redis.Subscribe(rec, this.Config.Get("redis_message_channel"))
 	if err != nil {
