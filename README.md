@@ -1,7 +1,7 @@
 Incus
 ===
 
-Incus was created by Imgur.com to be a real-time messaging server and act as the
+Incus was created by Imgur.com to be a real-time messaging server that acts as the
 intermediary between a web app and a browser.
 
 ## How it's used at Imgur
