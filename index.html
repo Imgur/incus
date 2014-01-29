@@ -74,7 +74,7 @@ sudo /etc/init.d/incus restart
 <p></p>Once incus is running you can include incus.js onto your site.</p>
 
 <pre><code>
-var socket = new Incus('http://localhost:4000', '5', 'http://imgur.com');
+var socket = new Incus('http://localhost:4000', 'UID', '/page/path');
 socket.on('connect', function() {
     console.log('connected');
 }
@@ -92,9 +92,9 @@ socket.on('Event2', function(data) {
 } 
 
 var data = {data: 'dummy-data'}; 
-socket.MessageUser('Event', '5', data); 
+socket.MessageUser('Event', 'UID', data); 
 socket.MessageAll('Event1', data);
-socket.MessagePage('Event2', 'http://imgur.com', data);
+socket.MessagePage('Event2', '/page/path', data);
 
 </pre></code>
       </section>
