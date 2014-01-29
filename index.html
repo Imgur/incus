@@ -100,6 +100,24 @@ $('#button').on('click', function() {
 });
 
 </pre></code>
+
+<p>To send events to Incus from your webapp you need to publish a json formated string to a Redis channel that Incus is listening on. This channel can be defined in the config file but deafaults to Incus. The json format is as follows:</p>
+<pre><code>
+{
+    'command' => {
+        'command' : string (message|setpage),
+        'user'    : (optional) string -- UID,
+        'page'    : (optional) string -- page identifier
+    },
+    'message' => {
+        'event' : string,
+        'data'  : object,
+        'time'  : int
+    }
+}
+</code></pre>
+
+<p>the command is used to route the message to the correct user. </p>
       </section>
       </div>
     <!--[if !IE]><script>fixScale(document);</script><![endif]-->
