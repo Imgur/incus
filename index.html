@@ -73,6 +73,7 @@ sudo /etc/init.d/incus restart
 </h1>
 Once incus is running you can include incus.js onto your site.
 
+<pre><code>
 var socket = new Incus('http://localhost:4000', '5', 'http://imgur.com');
 socket.on('connect', function() {
     console.log('connected');
@@ -94,6 +95,8 @@ var data = {data: 'dummy-data'};
 socket.MessageUser('Event', '5', data); 
 socket.MessageAll('Event1', data);
 socket.MessagePage('Event2', 'http://imgur.com', data);
+
+</pre></code>
       </section>
       </div>
     <!--[if !IE]><script>fixScale(document);</script><![endif]-->
