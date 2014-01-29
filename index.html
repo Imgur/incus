@@ -65,16 +65,26 @@ sudo /etc/init.d/incus restart
 
 <h1>
 <a name="configuring-incus" class="anchor" href="#configuring-incus"><span class="octicon octicon-link"></span></a>Configuring Incus</h1>
+<p>A redis instance is needed to cluster Incus machines or for a webapp to communicate with Incus. You can add the redis information into the congif file:</p>
+<pre><code>vim /etc/incus/incus.conf</code></pre>
 
-<p>Edit /etc/incus/incus.conf</p>
+<p>Many other settings can be changed in the config file:</p>
+<ul>
+	<li>disallow clients to message other clients</li>
+	<li>port incus listens on</li>
+	<li>log levels</li>
+	<li>timeout for socket connections</li>
+	<li>Redis connection info</li>
+	<li>Redis SUB/PUB channel</li>
+	<li>TLS support and port</li>
+</ul>
 
 <h1>
     <a name="using-incus" class="anchor" href="#using-incus"><span class="octicon octicon-link"></span></a>Using Incus
 </h1>
 <p></p>Once incus is running you can include incus.js onto your site.</p>
 <p>Here's the basic usage of incus.js</p>
-<pre><code>
-var socket = new Incus('http://localhost:4000', 'UID', '/page/path');
+<pre><code>var socket = new Incus('http://localhost:4000', 'UID', '/page/path');
 socket.on('connect', function() {
     console.log('connected');
 }
@@ -103,9 +113,8 @@ $('#button').on('click', function() {
 <p>UID is a unique identifier for the user. It can be anywhere from an auto incremented ID to something more privage such as a session id or OAuth token.</p>
 
 
-<p>To send events to Incus from your webapp you need to publish a json formated string to a Redis channel that Incus is listening on. This channel can be defined in the config file but deafaults to Incus. The json format is as follows:</p>
-<pre><code>
-{
+<p>To send events to Incus from your webapp you need to publish a json formated string to a Redis channel that Incus is listening on. This channel can be defined in the config file but defaults to Incus. The json format is as follows:</p>
+<pre><code>{
     'command' : {
         'command' : string (message|setpage),
         'user'    : (optional) string -- UID,
