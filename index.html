@@ -71,6 +71,29 @@ sudo /etc/init.d/incus restart
 <h1>
     <a name="using-incus" class="anchor" href="#using-incus"><span class="octicon octicon-link"></span></a>Using Incus
 </h1>
+Once incus is running you can include incus.js onto your site.
+
+var socket = new Incus('http://localhost:4000', '5', 'http://imgur.com');
+socket.on('connect', function() {
+    console.log('connected');
+}
+
+socket.on('Event', function(data) {
+    alert(data);
+}
+
+socket.on('Event1', function (data) {
+   console.log(data);
+}
+
+socket.on('Event2', function(data) {
+    console.log('neat');
+} 
+
+var data = {data: 'dummy-data'}; 
+socket.MessageUser('Event', '5', data); 
+socket.MessageAll('Event1', data);
+socket.MessagePage('Event2', 'http://imgur.com', data);
       </section>
       </div>
     <!--[if !IE]><script>fixScale(document);</script><![endif]-->
