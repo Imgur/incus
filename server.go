@@ -12,6 +12,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const (
+    writeWait = 5 * time.Second
+    pongWait  = 1 * time.Second
+)
+
 type Server struct {
 	ID     string
 	Config *Configuration
@@ -56,6 +61,7 @@ func (this *Server) initSocketListener() {
 			}
 		}()
 
+                ws.SetWriteDeadline(time.Now().Add(writeWait));
 		sock := newSocket(ws, nil, this, "")
 
 		if DEBUG {
@@ -193,7 +199,7 @@ func (this *Server) sendHeartbeats() {
 
 				if sock.isWebsocket() {
 					if !sock.isClosed() {
-						sock.ws.WriteMessage(websocket.PingMessage, []byte{})
+						sock.ws.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(pongWait))
 					}
 				}
 
