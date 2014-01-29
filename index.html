@@ -72,7 +72,7 @@ sudo /etc/init.d/incus restart
     <a name="using-incus" class="anchor" href="#using-incus"><span class="octicon octicon-link"></span></a>Using Incus
 </h1>
 <p></p>Once incus is running you can include incus.js onto your site.</p>
-
+<p>Here's the basic usage of incus.js</p>
 <pre><code>
 var socket = new Incus('http://localhost:4000', 'UID', '/page/path');
 socket.on('connect', function() {
@@ -104,12 +104,12 @@ $('#button').on('click', function() {
 <p>To send events to Incus from your webapp you need to publish a json formated string to a Redis channel that Incus is listening on. This channel can be defined in the config file but deafaults to Incus. The json format is as follows:</p>
 <pre><code>
 {
-    'command' => {
+    'command' : {
         'command' : string (message|setpage),
         'user'    : (optional) string -- UID,
         'page'    : (optional) string -- page identifier
     },
-    'message' => {
+    'message' : {
         'event' : string,
         'data'  : object,
         'time'  : int
