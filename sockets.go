@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+        "time"
 
 	"github.com/gorilla/websocket"
 )
@@ -146,6 +147,7 @@ func (this *Socket) listenForWrites() {
 
 			var err error
 			if this.isWebsocket() {
+				this.ws.SetWriteDeadline(time.Now().Add(writeWait))
 				err = this.ws.WriteJSON(message)
 			} else {
 				json_str, _ := json.Marshal(message)

@@ -61,7 +61,6 @@ func (this *Server) initSocketListener() {
 			}
 		}()
 
-		ws.SetWriteDeadline(time.Now().Add(writeWait))
 		sock := newSocket(ws, nil, this, "")
 
 		if DEBUG {
