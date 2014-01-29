@@ -13,8 +13,8 @@ import (
 )
 
 const (
-    writeWait = 5 * time.Second
-    pongWait  = 1 * time.Second
+	writeWait = 5 * time.Second
+	pongWait  = 1 * time.Second
 )
 
 type Server struct {
@@ -61,7 +61,7 @@ func (this *Server) initSocketListener() {
 			}
 		}()
 
-                ws.SetWriteDeadline(time.Now().Add(writeWait));
+		ws.SetWriteDeadline(time.Now().Add(writeWait))
 		sock := newSocket(ws, nil, this, "")
 
 		if DEBUG {
