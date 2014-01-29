@@ -117,7 +117,13 @@ $('#button').on('click', function() {
 }
 </code></pre>
 
-<p>the command is used to route the message to the correct user. </p>
+<p>
+the command is used to route the message to the correct user.
+   --- if user and page are both unset message will be sent to all users
+   --- if both user and page are set message will be sent to that user on that page
+   	
+The data inside message will be sent to the clients that are specified in command.
+   </p>
       </section>
       </div>
     <!--[if !IE]><script>fixScale(document);</script><![endif]-->
