@@ -91,10 +91,13 @@ socket.on('Event2', function(data) {
     console.log('neat');
 } 
 
-var data = {data: 'dummy-data'}; 
-socket.MessageUser('Event', 'UID', data); 
-socket.MessageAll('Event1', data);
-socket.MessagePage('Event2', '/page/path', data);
+var data = {data: 'dummy-data'};
+
+$('#button').on('click', function() {
+    socket.MessageUser('Event', 'UID', data); 
+    socket.MessageAll('Event1', data);
+    socket.MessagePage('Event2', '/page/path', data);
+});
 
 </pre></code>
       </section>
