@@ -117,7 +117,10 @@ func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
 		}
 
 		if !sock.isClosed() {
-			sock.buff <- msg
+			select {
+			case sock.buff <- msg:
+			default:
+			}
 		}
 	}
 }
@@ -133,7 +136,10 @@ func (this *CommandMsg) messageAll(server *Server) {
 	for _, user := range clients {
 		for _, sock := range user {
 			if !sock.isClosed() {
-				sock.buff <- msg
+				select {
+				case sock.buff <- msg:
+				default:
+				}
 			}
 		}
 	}
@@ -154,7 +160,10 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 
 	for _, sock := range pageMap {
 		if !sock.isClosed() {
-			sock.buff <- msg
+			select {
+			case sock.buff <- msg:
+			default:
+			}
 		}
 	}
 
@@ -163,5 +172,5 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 
 func (this *CommandMsg) forwardToRedis(server *Server) {
 	msg_str, _ := json.Marshal(this)
-	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster    
+	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster
 }

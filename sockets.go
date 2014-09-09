@@ -125,7 +125,7 @@ func (this *Socket) listenForMessages() {
 					log.Printf("Error: %s\n", err.Error())
 				}
 
-				go this.Close()
+				this.Close()
 				return
 			}
 
@@ -140,32 +140,35 @@ func (this *Socket) listenForMessages() {
 func (this *Socket) listenForWrites() {
 	for {
 		select {
-		case message := <-this.buff:
-			if DEBUG {
-				log.Println("Sending:", message)
-			}
-
-			var err error
-			if this.isWebsocket() {
-				this.ws.SetWriteDeadline(time.Now().Add(writeWait))
-				err = this.ws.WriteJSON(message)
-			} else {
-				json_str, _ := json.Marshal(message)
-
-				_, err = fmt.Fprint(this.lp, string(json_str))
-			}
-
-			if this.isLongPoll() || err != nil {
-				if DEBUG && err != nil {
-					log.Printf("Error: %s\n", err.Error())
-				}
-
-				go this.Close()
-				return
-			}
-
 		case <-this.done:
 			return
+		case message := <-this.buff:
+			go this.writeMessage(message)
 		}
+	}
+}
+
+func (this *Socket) writeMessage(message *Message) {
+	if DEBUG {
+		log.Println("Sending:", message)
+	}
+
+	var err error
+	if this.isWebsocket() {
+		this.ws.SetWriteDeadline(time.Now().Add(writeWait))
+		err = this.ws.WriteJSON(message)
+	} else {
+		json_str, _ := json.Marshal(message)
+
+		_, err = fmt.Fprint(this.lp, string(json_str))
+	}
+
+	if this.isLongPoll() || err != nil {
+		if DEBUG && err != nil {
+			log.Printf("Error: %s\n", err.Error())
+		}
+
+		this.Close()
+		return
 	}
 }
