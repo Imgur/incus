@@ -27,7 +27,7 @@ func init() {
 }
 
 func newSocket(ws *websocket.Conn, lp http.ResponseWriter, server *Server, UID string) *Socket {
-	return &Socket{<-socketIds, UID, "", ws, lp, server, make(chan *Message, 1000), make(chan bool), false}
+	return &Socket{<-socketIds, UID, "", ws, lp, server, make(chan *Message), make(chan bool), false}
 }
 
 type Socket struct {
