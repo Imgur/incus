@@ -55,7 +55,12 @@ func (this *Server) initSocketListener() {
 		}
 
 		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("Recovered in initSocketListener.Connect", r)
+			}
+
 			ws.Close()
+
 			if DEBUG {
 				log.Println("Socket Closed")
 			}
@@ -96,6 +101,10 @@ func (this *Server) initSocketListener() {
 func (this *Server) initLongPollListener() {
 	LpConnect := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("Recovered in initLongPollListener.LpConnect", r)
+			}
+
 			r.Body.Close()
 			if DEBUG {
 				log.Println("Socket Closed")
