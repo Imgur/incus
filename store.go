@@ -5,29 +5,29 @@ import "sync"
 type Storage struct {
 	memory      *MemoryStore
 	redis       *RedisStore
-	StorageType string
+	redis_store bool
 
 	userMu sync.RWMutex
 	pageMu sync.RWMutex
 }
 
 func initStore(Config *Configuration) *Storage {
-	store_type := "memory"
+	redis_store := false
 	var redisStore *RedisStore
 
-	redis_enabled := Config.GetBool("redis_store")
+	redis_enabled := Config.GetBool("redis_enabled")
 	if redis_enabled {
 		redis_host := Config.Get("redis_host")
 		redis_port := uint(Config.GetInt("redis_port"))
 
 		redisStore = newRedisStore(redis_host, redis_port)
-		store_type = "redis"
+		redis_store = Config.GetBool("redis_store")
 	}
 
 	var Store = Storage{
 		&MemoryStore{make(map[string]map[string]*Socket), make(map[string]map[string]*Socket), 0},
 		redisStore,
-		store_type,
+		redis_store,
 
 		sync.RWMutex{},
 		sync.RWMutex{},
@@ -41,7 +41,7 @@ func (this *Storage) Save(sock *Socket) error {
 	this.memory.Save(sock)
 	this.userMu.Unlock()
 
-	if this.StorageType == "redis" {
+	if this.redis_store {
 		if err := this.redis.Save(sock); err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func (this *Storage) Remove(sock *Socket) error {
 	this.memory.Remove(sock)
 	this.userMu.Unlock()
 
-	if this.StorageType == "redis" {
+	if this.redis_store {
 		if err := this.redis.Remove(sock); err != nil {
 			return err
 		}
@@ -79,7 +79,7 @@ func (this *Storage) Clients() map[string]map[string]*Socket {
 }
 
 func (this *Storage) ClientList() ([]string, error) {
-	if this.StorageType == "redis" {
+	if this.redis_store {
 		return this.redis.Clients()
 	}
 
@@ -87,7 +87,7 @@ func (this *Storage) ClientList() ([]string, error) {
 }
 
 func (this *Storage) Count() (int64, error) {
-	if this.StorageType == "redis" {
+	if this.redis_store {
 		return this.redis.Count()
 	}
 
@@ -99,7 +99,7 @@ func (this *Storage) SetPage(sock *Socket) error {
 	this.memory.SetPage(sock)
 	this.pageMu.Unlock()
 
-	if this.StorageType == "redis" {
+	if this.redis_store {
 		if err := this.redis.SetPage(sock); err != nil {
 			return err
 		}
@@ -113,7 +113,7 @@ func (this *Storage) UnsetPage(sock *Socket) error {
 	this.memory.UnsetPage(sock)
 	this.pageMu.Unlock()
 
-	if this.StorageType == "redis" {
+	if this.redis_store {
 		if err := this.redis.UnsetPage(sock); err != nil {
 			return err
 		}

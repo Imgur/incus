@@ -35,7 +35,7 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 			return
 		}
 
-		if sock.Server.Store.StorageType == "redis" {
+		if sock.Server.Config.GetBool("redis_enabled") {
 			this.forwardToRedis(sock.Server)
 			return
 		}
