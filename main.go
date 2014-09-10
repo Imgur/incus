@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"runtime"
 	"syscall"
-	"time"
 )
 
 var DEBUG bool
@@ -36,13 +35,6 @@ func main() {
 	InstallSignalHandlers(signals)
 
 	store = initStore(&conf)
-
-	go func() {
-		for {
-			log.Println(store.memory.clientCount)
-			time.Sleep(20 * time.Second)
-		}
-	}()
 
 	CLIENT_BROAD = conf.GetBool("client_broadcasts")
 	server := createServer(&conf, store)
