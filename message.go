@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	apns "github.com/anachronistic/apns"
 	"log"
 	"strings"
 	"time"
@@ -41,6 +42,9 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 		}
 
 		this.sendMessage(sock.Server)
+
+	case "push_ios":
+		this.pushiOS(sock.Server)
 
 	case "setpage":
 		page, ok := this.Command["page"]
@@ -97,6 +101,30 @@ func (this *CommandMsg) sendMessage(server *Server) {
 		this.messagePage(page, server)
 	} else {
 		this.messageAll(server)
+	}
+}
+
+func (this *CommandMsg) pushiOS(server *Server) {
+	user, userok := this.Command["user"]
+	device_token, device_token_ok := this.Command["device_token"]
+
+	if userok && device_token_ok {
+		payload := apns.NewPayload()
+		payload.Alert = "Push from incus!"
+		payload.Badge = 1
+		payload.Sound = "bingbong.aiff"
+
+		pn := apns.NewPushNotification()
+		pn.DeviceToken = device_token
+		pn.AddPayload(payload)
+
+		client := apns.NewClient("gateway.sandbox.push.apple.com:2195", server.Config.Get("apns_cert"), server.Config.Get("apns_private_key"))
+		resp := client.Send(pn)
+
+		alert, _ := pn.PayloadString()
+		log.Printf("Alert: %s\n", alert)
+		log.Printf("Success: %s\n", resp.Success)
+		log.Printf("Error: %s\n", resp.Error)
 	}
 }
 
@@ -163,5 +191,5 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 
 func (this *CommandMsg) forwardToRedis(server *Server) {
 	msg_str, _ := json.Marshal(this)
-	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster    
+	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster
 }
