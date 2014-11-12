@@ -123,10 +123,11 @@ func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
 	pn.DeviceToken = deviceToken
 	pn.AddPayload(payload)
 
+	var apns_url string
 	if DEBUG_PUSH {
-		var apns_url string = server.Config.Get("apns_sandbox_url")
+		apns_url = server.Config.Get("apns_sandbox_url")
 	} else {
-		var apns_url string = server.Config.Get("apns_production_url")
+		apns_url = server.Config.Get("apns_production_url")
 	}
 
 	client := apns.NewClient(apns_url, server.Config.Get("apns_cert"), server.Config.Get("apns_private_key"))
