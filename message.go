@@ -97,7 +97,7 @@ func (this *CommandMsg) sendMessage(server *Server) {
 		this.messageUser(user, page, server)
 	} else if pageok {
 		this.messagePage(page, server)
-	} else && !deviceToken_ok {
+	} else if !deviceToken_ok {
 		this.messageAll(server)
 	}
 
