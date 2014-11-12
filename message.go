@@ -201,5 +201,5 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 
 func (this *CommandMsg) forwardToRedis(server *Server) {
 	msg_str, _ := json.Marshal(this)
-	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across clusterpwn
+	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster
 }
