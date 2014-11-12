@@ -91,16 +91,15 @@ func (this *CommandMsg) formatMessage() (*Message, error) {
 func (this *CommandMsg) sendMessage(server *Server) {
 	user, userok := this.Command["user"]
 	page, pageok := this.Command["page"]
+	deviceToken, deviceToken_ok := this.Command["device_token"]
 
 	if userok {
 		this.messageUser(user, page, server)
 	} else if pageok {
 		this.messagePage(page, server)
-	} else {
+	} else && !deviceToken_ok {
 		this.messageAll(server)
 	}
-
-	deviceToken, deviceToken_ok := this.Command["device_token"]
 
 	if deviceToken_ok {
 		this.pushiOS(server, deviceToken)
