@@ -43,9 +43,6 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 
 		this.sendMessage(sock.Server)
 
-	case "push_ios":
-		this.pushiOS(sock.Server)
-
 	case "setpage":
 		page, ok := this.Command["page"]
 		if !ok || page == "" {
@@ -102,30 +99,43 @@ func (this *CommandMsg) sendMessage(server *Server) {
 	} else {
 		this.messageAll(server)
 	}
+
+	deviceToken, deviceToken_ok := this.Command["device_token"]
+
+	if deviceToken_ok {
+		this.pushiOS(server, deviceToken)
+	}
 }
 
-func (this *CommandMsg) pushiOS(server *Server) {
-	user, userok := this.Command["user"]
-	device_token, device_token_ok := this.Command["device_token"]
-
-	if userok && device_token_ok {
-		payload := apns.NewPayload()
-		payload.Alert = "Push from incus!"
-		payload.Badge = 1
-		payload.Sound = "bingbong.aiff"
-
-		pn := apns.NewPushNotification()
-		pn.DeviceToken = device_token
-		pn.AddPayload(payload)
-
-		client := apns.NewClient("gateway.sandbox.push.apple.com:2195", server.Config.Get("apns_cert"), server.Config.Get("apns_private_key"))
-		resp := client.Send(pn)
-
-		alert, _ := pn.PayloadString()
-		log.Printf("Alert: %s\n", alert)
-		log.Printf("Success: %s\n", resp.Success)
-		log.Printf("Error: %s\n", resp.Error)
+func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
+	msg, err := this.formatMessage()
+	if err != nil {
+		log.Println("Could not format message")
+		return
 	}
+
+	payload := apns.NewPayload()
+	payload.Alert = msg.Data["message"]
+	payload.Badge = msg.Data["count"]
+	payload.Sound = "bingbong.aiff"
+
+	pn := apns.NewPushNotification()
+	pn.DeviceToken = deviceToken
+	pn.AddPayload(payload)
+
+	if DEBUG_PUSH {
+		apns_url = server.Config.Get("apns_sandbox_url")
+	} else {
+		apns_url = server.Config.Get("apns_production_url")
+	}
+
+	client := apns.NewClient(apns_url, server.Config.Get("apns_cert"), server.Config.Get("apns_private_key"))
+	resp := client.Send(pn)
+
+	alert, _ := pn.PayloadString()
+	log.Printf("Alert: %s\n", alert)
+	log.Printf("Success: %s\n", resp.Success)
+	log.Printf("Error: %s\n", resp.Error)
 }
 
 func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
@@ -191,5 +201,5 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 
 func (this *CommandMsg) forwardToRedis(server *Server) {
 	msg_str, _ := json.Marshal(this)
-	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster
+	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across clusterpwn
 }
