@@ -116,7 +116,7 @@ func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
 
 	payload := apns.NewPayload()
 	payload.Alert = msg.Data["message"]
-	payload.Badge = msg.Data["count"]
+	payload.Badge = msg.Data["count"].(int)
 	payload.Sound = "bingbong.aiff"
 
 	pn := apns.NewPushNotification()
@@ -124,9 +124,9 @@ func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
 	pn.AddPayload(payload)
 
 	if DEBUG_PUSH {
-		apns_url = server.Config.Get("apns_sandbox_url")
+		var apns_url string = server.Config.Get("apns_sandbox_url")
 	} else {
-		apns_url = server.Config.Get("apns_production_url")
+		var apns_url string = server.Config.Get("apns_production_url")
 	}
 
 	client := apns.NewClient(apns_url, server.Config.Get("apns_cert"), server.Config.Get("apns_private_key"))
