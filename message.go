@@ -5,7 +5,6 @@ import (
 	"errors"
 	apns "github.com/anachronistic/apns"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -117,9 +116,7 @@ func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
 	payload := apns.NewPayload()
 	payload.Alert = msg.Data["message"]
 	payload.Sound = server.Config.Get("ios_push_sound")
-
-	i, _ := strconv.Atoi(this.Command["badge_count"])
-	payload.Badge = i
+	payload.Badge = msg.Data["badge_count"].(int)
 
 	pn := apns.NewPushNotification()
 	pn.DeviceToken = deviceToken
