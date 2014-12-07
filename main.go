@@ -12,7 +12,6 @@ import (
 )
 
 var DEBUG bool
-var DEBUG_PUSH bool
 var CLIENT_BROAD bool
 var store *Storage
 
@@ -89,11 +88,6 @@ func initLogger(conf Configuration) {
 	DEBUG = false
 	if conf.Get("log_level") == "debug" {
 		DEBUG = true
-	}
-
-	DEBUG_PUSH = false
-	if conf.GetBool("push_debug") {
-		DEBUG_PUSH = true
 	}
 }
 

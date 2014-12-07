@@ -5,6 +5,7 @@ import (
 	"errors"
 	apns "github.com/anachronistic/apns"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -115,15 +116,20 @@ func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
 
 	payload := apns.NewPayload()
 	payload.Alert = msg.Data["message"]
-	payload.Badge = int(msg.Data["count"].(float64))
+
+	i, _ := strconv.Atoi(this.Command["badge_count"])
+
+	payload.Badge = i
 	payload.Sound = "bingbong.aiff"
 
 	pn := apns.NewPushNotification()
 	pn.DeviceToken = deviceToken
 	pn.AddPayload(payload)
 
+	pn.Set("data", msg.Data)
+
 	var apns_url string
-	if DEBUG_PUSH {
+	if DEBUG {
 		apns_url = server.Config.Get("apns_sandbox_url")
 	} else {
 		apns_url = server.Config.Get("apns_production_url")
@@ -133,9 +139,12 @@ func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
 	resp := client.Send(pn)
 
 	alert, _ := pn.PayloadString()
-	log.Printf("Alert: %s\n", alert)
-	log.Printf("Success: %s\n", resp.Success)
-	log.Printf("Error: %s\n", resp.Error)
+
+	if DEBUG {
+		log.Printf("Alert: %s\n", alert)
+		log.Printf("Success: %s\n", resp.Success)
+		log.Printf("Error: %s\n", resp.Error)
+	}
 }
 
 func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
