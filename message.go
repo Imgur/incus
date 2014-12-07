@@ -116,7 +116,7 @@ func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
 	payload := apns.NewPayload()
 	payload.Alert = msg.Data["message"]
 	payload.Sound = server.Config.Get("ios_push_sound")
-	payload.Badge = msg.Data["badge_count"].(int)
+	payload.Badge = int(msg.Data["badge_count"].(float64))
 
 	pn := apns.NewPushNotification()
 	pn.DeviceToken = deviceToken
