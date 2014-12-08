@@ -121,7 +121,6 @@ func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
 	pn := apns.NewPushNotification()
 	pn.DeviceToken = deviceToken
 	pn.AddPayload(payload)
-
 	pn.Set("payload", msg)
 
 	var apns_url string
@@ -132,8 +131,8 @@ func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
 	}
 
 	client := apns.NewClient(apns_url, server.Config.Get("apns_cert"), server.Config.Get("apns_private_key"))
-	resp := client.Send(pn)
 
+	resp := client.Send(pn)
 	alert, _ := pn.PayloadString()
 
 	if DEBUG {
