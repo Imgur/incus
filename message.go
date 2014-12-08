@@ -122,7 +122,7 @@ func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
 	pn.DeviceToken = deviceToken
 	pn.AddPayload(payload)
 
-	pn.Set("data", msg)
+	pn.Set("payload", msg)
 
 	var apns_url string
 	if DEBUG {
