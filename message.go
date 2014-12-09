@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	apns "github.com/anachronistic/apns"
 	"log"
 	"strings"
 	"time"
@@ -71,6 +72,9 @@ func (this *CommandMsg) FromRedis(server *Server) {
 
 	case "message":
 		this.sendMessage(server)
+
+	case "pushios":
+		this.pushiOS(server)
 	}
 }
 
@@ -97,6 +101,61 @@ func (this *CommandMsg) sendMessage(server *Server) {
 		this.messagePage(page, server)
 	} else {
 		this.messageAll(server)
+	}
+}
+
+func (this *CommandMsg) pushiOS(server *Server) {
+	deviceToken, deviceToken_ok := this.Command["device_token"]
+	build, _ := this.Command["build"]
+
+	if !deviceToken_ok {
+		log.Println("Device token and build not provided!")
+		return
+	}
+
+	msg, err := this.formatMessage()
+	if err != nil {
+		log.Println("Could not format message")
+		return
+	}
+
+	payload := apns.NewPayload()
+	payload.Alert = msg.Data["message_text"]
+	payload.Sound = server.Config.Get("ios_push_sound")
+	payload.Badge = int(msg.Data["badge_count"].(float64))
+
+	pn := apns.NewPushNotification()
+	pn.DeviceToken = deviceToken
+	pn.AddPayload(payload)
+	pn.Set("payload", msg)
+
+	var apns_url string
+	var client *apns.Client
+
+	switch build {
+
+	case "store", "enterprise", "beta":
+
+		client = apns.NewClient(apns_url, server.Config.Get("apns_"+build+"_cert"), server.Config.Get("apns_"+build+"_private_key"))
+
+		if build == "store" || build == "enterprise" {
+			apns_url = server.Config.Get("apns_production_url")
+		} else {
+			apns_url = server.Config.Get("apns_sandbox_url")
+		}
+
+	default:
+		client = apns.NewClient(apns_url, server.Config.Get("apns_store_cert"), server.Config.Get("apns_store_private_key"))
+		apns_url = server.Config.Get("apns_production_url")
+	}
+
+	resp := client.Send(pn)
+	alert, _ := pn.PayloadString()
+
+	if DEBUG {
+		log.Printf("Alert: %s\n", alert)
+		log.Printf("Success: %s\n", resp.Success)
+		log.Printf("Error: %s\n", resp.Error)
 	}
 }
 
@@ -163,5 +222,5 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 
 func (this *CommandMsg) forwardToRedis(server *Server) {
 	msg_str, _ := json.Marshal(this)
-	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster    
+	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster
 }
