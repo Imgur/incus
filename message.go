@@ -72,6 +72,9 @@ func (this *CommandMsg) FromRedis(server *Server) {
 
 	case "message":
 		this.sendMessage(server)
+
+	case "pushios":
+		this.pushiOS(server)
 	}
 }
 
@@ -91,22 +94,25 @@ func (this *CommandMsg) formatMessage() (*Message, error) {
 func (this *CommandMsg) sendMessage(server *Server) {
 	user, userok := this.Command["user"]
 	page, pageok := this.Command["page"]
-	deviceToken, deviceToken_ok := this.Command["device_token"]
 
 	if userok {
 		this.messageUser(user, page, server)
 	} else if pageok {
 		this.messagePage(page, server)
-	} else if !deviceToken_ok {
+	} else {
 		this.messageAll(server)
-	}
-
-	if deviceToken_ok {
-		this.pushiOS(server, deviceToken)
 	}
 }
 
-func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
+func (this *CommandMsg) pushiOS(server *Server) {
+	deviceToken, deviceToken_ok := this.Command["device_token"]
+	build, _ := this.Command["build"]
+
+	if !deviceToken_ok {
+		log.Println("Device token and build not provided!")
+		return
+	}
+
 	msg, err := this.formatMessage()
 	if err != nil {
 		log.Println("Could not format message")
@@ -124,13 +130,18 @@ func (this *CommandMsg) pushiOS(server *Server, deviceToken string) {
 	pn.Set("payload", msg)
 
 	var apns_url string
-	if DEBUG {
+	var client *apns.Client
+
+	switch build {
+
+	case "beta", "enterprise":
+		client = apns.NewClient(apns_url, server.Config.Get("apns_"+build+"_cert"), server.Config.Get("apns_"+build+"_private_key"))
 		apns_url = server.Config.Get("apns_sandbox_url")
-	} else {
+
+	default:
+		client = apns.NewClient(apns_url, server.Config.Get("apns_cert"), server.Config.Get("apns_private_key"))
 		apns_url = server.Config.Get("apns_production_url")
 	}
-
-	client := apns.NewClient(apns_url, server.Config.Get("apns_cert"), server.Config.Get("apns_private_key"))
 
 	resp := client.Send(pn)
 	alert, _ := pn.PayloadString()
