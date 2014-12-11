@@ -152,9 +152,8 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	resp := client.Send(pn)
 	alert, _ := pn.PayloadString()
 
-	if DEBUG {
+	if resp.Error != nil {
 		log.Printf("Alert: %s\n", alert)
-		log.Printf("Success: %s\n", resp.Success)
 		log.Printf("Error: %s\n", resp.Error)
 	}
 }
