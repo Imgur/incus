@@ -109,7 +109,7 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	build, _ := this.Command["build"]
 
 	if !deviceToken_ok {
-		log.Println("Device token and build not provided!")
+		log.Println("Device token not provided!")
 		return
 	}
 
