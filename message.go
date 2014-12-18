@@ -183,10 +183,15 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 
 	sender := &gcm.Sender{ApiKey: server.Config.Get("gcm_api_key")}
 
-	_, err = sender.Send(gcmMessage, 2)
-	if err != nil {
-		log.Printf("Error (Android): %s\n", err)
+	gcmResponse, gcmErr := sender.Send(gcmMessage, 2)
+	if gcmErr != nil {
+		log.Printf("Error (Android): %s\n", gcmErr)
 		return
+	}
+
+	if gcmResponse.Failure > 0 {
+		msg_str, _ := json.Marshal(gcmResponse)
+		server.Store.redis.Push(server.Config.Get("android_error_queue"), string(msg_str))
 	}
 }
 

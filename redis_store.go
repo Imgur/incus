@@ -135,6 +135,16 @@ func (this *RedisStore) Publish(channel string, message string) {
 	publisher.Publish(channel, message)
 }
 
+func (this *RedisStore) Push(queue string, message string) {
+	client, err := this.GetConn()
+	if err != nil {
+		return
+	}
+	defer this.CloseConn(client)
+
+	client.RPush(queue, message)
+}
+
 func (this *RedisStore) Save(sock *Socket) error {
 	client, err := this.GetConn()
 	if err != nil {
