@@ -1,9 +1,10 @@
 package main
 
 import (
+	apns "github.com/anachronistic/apns"
 	"encoding/json"
 	"errors"
-	apns "github.com/anachronistic/apns"
+	"github.com/alexjlockwood/gcm"
 	"log"
 	"strings"
 	"time"
@@ -75,6 +76,9 @@ func (this *CommandMsg) FromRedis(server *Server) {
 
 	case "pushios":
 		this.pushiOS(server)
+
+	case "pushandroid":
+		this.pushAndroid(server)
 	}
 }
 
@@ -153,8 +157,36 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	alert, _ := pn.PayloadString()
 
 	if resp.Error != nil {
-		log.Printf("Alert: %s\n", alert)
-		log.Printf("Error: %s\n", resp.Error)
+		log.Printf("Alert (iOS): %s\n", alert)
+		log.Printf("Error (iOS): %s\n", resp.Error)
+	}
+}
+
+func (this *CommandMsg) pushAndroid(server *Server) {
+	registration_ids, registration_ids_ok := this.Command["registration_ids"]
+
+	if !registration_ids_ok {
+		log.Println("Registration ID(s) not provided!")
+		return
+	}
+
+	msg, err := this.formatMessage()
+	if err != nil {
+		log.Println("Could not format message")
+		return
+	}
+
+	data := map[string]interface{}{"event": msg.Event, "payload": msg.Data, "time": msg.Time}
+
+	regIDs := strings.Split(registration_ids, ",")
+	gcmMessage := gcm.NewMessage(data, regIDs...)
+
+	sender := &gcm.Sender{ApiKey: server.Config.Get("gcm_api_key")}
+
+	_, err = sender.Send(gcmMessage, 2)
+	if err != nil {
+		log.Printf("Error (Android): %s\n", err)
+		return
 	}
 }
 
