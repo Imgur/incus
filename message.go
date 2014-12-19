@@ -190,7 +190,9 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 	}
 
 	if gcmResponse.Failure > 0 {
-		msg_str, _ := json.Marshal(gcmResponse)
+		failurePayload := map[string]interface{}{"registration_ids": regIDs, "results": gcmResponse.Results}
+
+		msg_str, _ := json.Marshal(failurePayload)
 		server.Store.redis.Push(server.Config.Get("android_error_queue"), string(msg_str))
 	}
 }
