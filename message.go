@@ -139,18 +139,17 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	switch build {
 
 	case "store", "enterprise", "beta":
-
-		client = apns.NewClient(apns_url, server.Config.Get("apns_"+build+"_cert"), server.Config.Get("apns_"+build+"_private_key"))
-
 		if build == "store" || build == "enterprise" {
 			apns_url = server.Config.Get("apns_production_url")
 		} else {
 			apns_url = server.Config.Get("apns_sandbox_url")
 		}
 
+		client = apns.NewClient(apns_url, server.Config.Get("apns_"+build+"_cert"), server.Config.Get("apns_"+build+"_private_key"))
+
 	default:
-		client = apns.NewClient(apns_url, server.Config.Get("apns_store_cert"), server.Config.Get("apns_store_private_key"))
 		apns_url = server.Config.Get("apns_production_url")
+		client = apns.NewClient(apns_url, server.Config.Get("apns_store_cert"), server.Config.Get("apns_store_private_key"))
 	}
 
 	resp := client.Send(pn)
