@@ -175,7 +175,7 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 		return
 	}
 
-	data := map[string]interface{}{"event": msg.Event, "payload": msg.Data, "time": msg.Time}
+	data := map[string]interface{}{"event": msg.Event, "data": msg.Data, "time": msg.Time}
 
 	regIDs := strings.Split(registration_ids, ",")
 	gcmMessage := gcm.NewMessage(data, regIDs...)
@@ -189,6 +189,11 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 	}
 
 	if gcmResponse.Failure > 0 {
+		if !server.Config.GetBool("redis_enabled") {
+			log.Println("Could not push to android_error_queue since redis is not enabled")
+			return
+		}
+
 		failurePayload := map[string]interface{}{"registration_ids": regIDs, "results": gcmResponse.Results}
 
 		msg_str, _ := json.Marshal(failurePayload)
