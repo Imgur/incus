@@ -173,7 +173,6 @@ func (this *Server) initAppListener() {
 	}
 	defer queueConsumer.Quit()
 
-
 	if DEBUG {
 		log.Println("LISENING FOR REDIS MESSAGE")
 	}
@@ -184,10 +183,10 @@ func (this *Server) initAppListener() {
 		var cmd = new(CommandMsg)
 
 		select {
-			case subMessage = <-subReciever:
-				json.Unmarshal([]byte(subMessage[2]), cmd)
-			case pollMessage = <-queueReciever:
-				json.Unmarshal([]byte(pollMessage), cmd)
+		case subMessage = <-subReciever:
+			json.Unmarshal([]byte(subMessage[2]), cmd)
+		case pollMessage = <-queueReciever:
+			json.Unmarshal([]byte(pollMessage), cmd)
 		}
 
 		go cmd.FromRedis(this)

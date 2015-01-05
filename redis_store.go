@@ -2,9 +2,9 @@ package main
 
 import (
 	"errors"
+	"github.com/gosexy/redis"
 	"log"
 	"time"
-	"github.com/gosexy/redis"
 )
 
 const ClientsKey = "SocketClients"
@@ -140,9 +140,9 @@ func (this *RedisStore) Poll(c chan string, queue string) (*redis.Client, error)
 		for {
 			message, err := consumer.LPop(queue)
 			if err == nil && message != "" {
-			   c <- message
+				c <- message
 			} else {
-			  time.Sleep(time.Millisecond * 50)
+				time.Sleep(time.Millisecond * 50)
 			}
 		}
 	}()

@@ -1,10 +1,10 @@
 package main
 
 import (
-	apns "github.com/anachronistic/apns"
 	"encoding/json"
 	"errors"
 	"github.com/alexjlockwood/gcm"
+	apns "github.com/anachronistic/apns"
 	"log"
 	"strings"
 	"time"
