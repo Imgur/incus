@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"log"
-
+	"time"
 	"github.com/gosexy/redis"
 )
 
@@ -121,6 +121,29 @@ func (this *RedisStore) Subscribe(c chan []string, channel string) (*redis.Clien
 
 	go consumer.Subscribe(c, channel)
 	<-c // ignore subscribe command
+
+	return consumer, nil
+}
+
+func (this *RedisStore) Poll(c chan string, queue string) (*redis.Client, error) {
+	consumer := redis.New()
+	err := consumer.ConnectNonBlock(this.server, this.port)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := consumer.Ping(); err != nil {
+		return nil, err
+	}
+
+	go func() {
+		for {
+			message, _ := consumer.LPop(queue)
+			c <- message
+
+			time.Sleep(time.Millisecond * 50)
+		}
+	}()
 
 	return consumer, nil
 }
