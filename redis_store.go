@@ -138,10 +138,12 @@ func (this *RedisStore) Poll(c chan string, queue string) (*redis.Client, error)
 
 	go func() {
 		for {
-			message, _ := consumer.LPop(queue)
-			c <- message
-
-			time.Sleep(time.Millisecond * 50)
+			message, err := consumer.LPop(queue)
+			if err == nil && message != "" {
+			   c <- message
+			} else {
+			  time.Sleep(time.Millisecond * 50)
+			}
 		}
 	}()
 
