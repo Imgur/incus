@@ -2,9 +2,9 @@ package main
 
 import (
 	"errors"
-	"log"
-
 	"github.com/gosexy/redis"
+	"log"
+	"time"
 )
 
 const ClientsKey = "SocketClients"
@@ -125,6 +125,31 @@ func (this *RedisStore) Subscribe(c chan []string, channel string) (*redis.Clien
 	return consumer, nil
 }
 
+func (this *RedisStore) Poll(c chan string, queue string) (*redis.Client, error) {
+	consumer := redis.New()
+	err := consumer.ConnectNonBlock(this.server, this.port)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := consumer.Ping(); err != nil {
+		return nil, err
+	}
+
+	go func() {
+		for {
+			message, err := consumer.LPop(queue)
+			if err == nil && message != "" {
+				c <- message
+			} else {
+				time.Sleep(time.Millisecond * 50)
+			}
+		}
+	}()
+
+	return consumer, nil
+}
+
 func (this *RedisStore) Publish(channel string, message string) {
 	publisher, err := this.GetConn()
 	if err != nil {
@@ -133,6 +158,16 @@ func (this *RedisStore) Publish(channel string, message string) {
 	defer this.CloseConn(publisher)
 
 	publisher.Publish(channel, message)
+}
+
+func (this *RedisStore) Push(queue string, message string) {
+	client, err := this.GetConn()
+	if err != nil {
+		return
+	}
+	defer this.CloseConn(client)
+
+	client.RPush(queue, message)
 }
 
 func (this *RedisStore) Save(sock *Socket) error {
