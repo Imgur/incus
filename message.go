@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	apns "github.com/anachronistic/apns"
 	"log"
 	"strings"
 	"time"
+
+	apns "github.com/anachronistic/apns"
 )
 
 type CommandMsg struct {
@@ -134,8 +135,8 @@ func (this *CommandMsg) pushiOS(server *Server) {
 
 	switch build {
 
-	case "store", "enterprise", "beta":
-		if build == "store" || build == "enterprise" {
+	case "store", "enterprise", "beta", "development":
+		if build == "store" || build == "enterprise" || build == "beta" {
 			apns_url = server.Config.Get("apns_production_url")
 		} else {
 			apns_url = server.Config.Get("apns_sandbox_url")
