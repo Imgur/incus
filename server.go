@@ -167,11 +167,10 @@ func (this *Server) initAppListener() {
 	}
 	defer subConsumer.Quit()
 
-	queueConsumer, err := this.Store.redis.Poll(queueReciever, this.Config.Get("redis_message_queue"))
+	err = this.Store.redis.Poll(queueReciever, this.Config.Get("redis_message_queue"))
 	if err != nil {
 		log.Fatal("Couldn't start polling of redis queue")
 	}
-	defer queueConsumer.Quit()
 
 	if DEBUG {
 		log.Println("LISENING FOR REDIS MESSAGE")

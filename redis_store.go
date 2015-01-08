@@ -37,7 +37,7 @@ func newRedisStore(redis_host string, redis_port uint) *RedisStore {
 
 		redisPool{
 			connections: make(chan *redis.Client, 6),
-			maxIdle:     6,
+			maxIdle:     10,
 
 			connFn: func() (*redis.Client, error) {
 				client := redis.New()
@@ -119,35 +119,51 @@ func (this *RedisStore) Subscribe(c chan []string, channel string) (*redis.Clien
 		return nil, err
 	}
 
-	go consumer.Subscribe(c, channel)
+	go this.subscribeOrReconnect(c, channel, consumer)
 	<-c // ignore subscribe command
 
 	return consumer, nil
 }
 
-func (this *RedisStore) Poll(c chan string, queue string) (*redis.Client, error) {
-	consumer := redis.New()
-	err := consumer.ConnectNonBlock(this.server, this.port)
-	if err != nil {
-		return nil, err
-	}
+func (this *RedisStore) subscribeOrReconnect(c chan []string, channel string, consumer *redis.Client) {
+	for {
+	    err := consumer.Subscribe(c, channel)
+	    if err != nil {
+	    	log.Println(err)
+	    	time.Sleep(time.Second)
+	    	log.Println("Reconnecting to redis...........")
 
-	if _, err := consumer.Ping(); err != nil {
-		return nil, err
+	    	consumer = redis.New()
+			consumer.ConnectNonBlock(this.server, this.port)
+	    }
 	}
+}
 
+func (this *RedisStore) Poll(c chan string, queue string) error {
 	go func() {
+		consumer, _ := this.GetConn()
+		defer this.CloseConn(consumer)
+		var err error
+
 		for {
+			consumer, err = this.GetConn()
+			if err != nil {
+				time.Sleep(time.Millisecond * 100)
+				continue;
+			}
+
 			message, err := consumer.LPop(queue)
+			this.CloseConn(consumer)
+
 			if err == nil && message != "" {
 				c <- message
 			} else {
-				time.Sleep(time.Millisecond * 50)
+				time.Sleep(time.Millisecond * 100)
 			}
 		}
 	}()
 
-	return consumer, nil
+	return nil
 }
 
 func (this *RedisStore) Publish(channel string, message string) {
