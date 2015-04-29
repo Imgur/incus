@@ -2,9 +2,9 @@ package main
 
 import (
 	"log"
+	"os"
 	"strconv"
-
-	"github.com/briankassouf/cfg"
+	"strings"
 )
 
 type Configuration struct {
@@ -13,12 +13,49 @@ type Configuration struct {
 
 func initConfig() Configuration {
 	mymap := make(map[string]string)
-	err := cfg.Load("/etc/incus/incus.conf", mymap)
-	if err != nil {
-		log.Panic(err)
+
+	ConfigOption(mymap, "CLIENT_BROADCASTS", "true")
+	ConfigOption(mymap, "LISTENING_PORT", "4000")
+	ConfigOption(mymap, "CONNECTION_TIMEOUT", "0")
+	ConfigOption(mymap, "LOG_LEVEL", "debug")
+
+	ConfigOption(mymap, "REDIS_MESSAGE_CHANNEL", "Incus")
+	redis_port_env, redis_port_chosen := ConfigOption(mymap, "REDIS_PORT_6379_TCP_PORT", "6379")
+
+	if redis_port_env != "" {
+		_, redis_host_chosen := ConfigOption(mymap, "REDIS_PORT_6379_TCP_ADDR", "127.0.0.1")
+
+		mymap["redis_host"] = redis_host_chosen
+		mymap["redis_port"] = redis_port_chosen
+		mymap["redis_enabled"] = "true"
+	} else {
+		mymap["redis_enabled"] = "false"
+	}
+
+	tls_enabled_env, _ := ConfigOption(mymap, "TLS_ENABLED", "false")
+
+	if tls_enabled_env != "" {
+		ConfigOption(mymap, "TLS_PORT", "443")
+		ConfigOption(mymap, "CERT_FILE", "cert.pem")
+		ConfigOption(mymap, "KEY_FILE", "key.pem")
 	}
 
 	return Configuration{mymap}
+}
+
+func ConfigOption(mymap map[string]string, key, default_value string) (string, string) {
+	env_value := os.Getenv(key)
+	var chosen_value string
+
+	if env_value == "" {
+		chosen_value = default_value
+	} else {
+		chosen_value = env_value
+	}
+
+	mymap[strings.ToLower(key)] = chosen_value
+
+	return chosen_value, env_value
 }
 
 func (this *Configuration) Get(name string) string {

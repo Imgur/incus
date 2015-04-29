@@ -173,8 +173,15 @@ func (this *Server) initAppListener() {
 		ms = <-rec
 
 		var cmd = new(CommandMsg)
-		json.Unmarshal([]byte(ms[2]), cmd)
-		go cmd.FromRedis(this)
+		err = json.Unmarshal([]byte(ms[2]), cmd)
+
+		if err != nil {
+			if DEBUG {
+				log.Printf("Error decoding JSON: %s", err.Error())
+			}
+		} else {
+			go cmd.FromRedis(this)
+		}
 	}
 }
 
