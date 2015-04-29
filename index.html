@@ -30,10 +30,24 @@
 
       </header>
       <section>
-        <h1>
-<a name="installing-incus" class="anchor" href="#installing-incus"><span class="octicon octicon-link"></span></a>Installing Incus</h1>
+        <h1><a name="installing-incus" class="anchor" href="#installing-incus"><span class="octicon octicon-link"></span></a>Installing Incus</h1>
+
+        <h2>Method 1: Docker</h2>
+
+        <p>Install <a href="https://docs.docker.com/installation/#installation">Docker</a></p>
+
+        <p>Start an instance of Redis: </p>
+        <pre><code>docker run -d --name incusredis redis</code></pre>
+
+        <p>Start Incus: </p>
+        <pre><code>docker run -d --link incusredis:redis --name incus \
+        -p 4000:4000 jwgur/incus </pre></code>
+
+        <h2>Method 2: Manual</h2>
 
 <p>Install GO: <a href="http://golang.org/doc/install">http://golang.org/doc/install</a></p>
+
+<p>An instance of Redis is needed to cluster Incus machines or for a webapp to communicate with Incus. </p>
 
 <p>install GO libraries</p>
 
@@ -65,19 +79,97 @@ sudo /etc/init.d/incus restart
 
 <h1>
 <a name="configuring-incus" class="anchor" href="#configuring-incus"><span class="octicon octicon-link"></span></a>Configuring Incus</h1>
-<p>A redis instance is needed to cluster Incus machines or for a webapp to communicate with Incus. You can add the redis information into the congif file:</p>
-<pre><code>vim /etc/incus/incus.conf</code></pre>
 
-<p>Many other settings can be changed in the config file:</p>
-<ul>
-	<li>disallow clients to message other clients</li>
-	<li>Incus listening port</li>
-	<li>log levels</li>
-	<li>timeout for socket connections</li>
-	<li>Redis connection info</li>
-	<li>Redis Pub/Sub channel</li>
-	<li>TLS support and port</li>
-</ul>
+<p>You can configure Incus by passing environment variables: </p>
+
+<h3>CLIENT_BROADCASTS</h3>
+
+<dl>
+    <dt>true</dt>
+    <dd>Clients may send messages to other clients</dd>
+
+    <dt>false</dt>
+    <dd>Clients may not send messages to other clients.</dd>
+</dl>
+
+<p>Default: <strong>true</strong></p>
+
+<h3>LISTENING_PORT</h3>
+
+<p>This value controls the port that Incus binds to (TCP).</p>
+<p>Default: <strong>4000</strong></p>
+
+<h3>CONNECTION_TIMEOUT</h3>
+
+<p>This value controls how long TCP connections are held open for.</p>
+
+<dl>
+    <dt>0</dt>
+    <dd>Connections are held open forever.</dd>
+
+    <dt>anything else</dt>
+    <dd>Connections are held open for this many seconds.</dd>
+</dl>
+
+<p>Default: <strong>0</strong></p>
+
+<h3>LOG_LEVEL</h3>
+
+<dl>
+    <dt>debug</dt>
+    <dd>All messages, including errors and debug are printed to standard output.</dd>
+    <dt>error</dt>
+    <dd>Only errors are printed to standard output.</dd>
+</dl>
+
+<p>Default: <strong>debug</strong></p>
+
+<h3>REDIS_PORT_6379_TCP_ADDR</h3>
+
+<p>This value controls the TCP address (or hostname) to connect to Redis.</p>
+<p>Note: The environment variable name is always <strong>REDIS_PORT_6379_TCP_ADDR</strong> even if the port is not 6379.</p>
+<p>Default: <strong>127.0.0.1</strong></p>
+
+<h3>REDIS_PORT_6379_TCP_PORT</h3>
+
+<p>This value controls the TCP port to connect to Redis.</p>
+<p>Note: The environment variable name is always <strong>REDIS_PORT_6379_TCP_PORT</strong> even if the port is not 6379.</p>
+<p>Default: <strong>6379</strong></p>
+
+<h3>REDIS_MESSAGE_CHANNEL</h3>
+
+<p>This value controls the <a href="http://redis.io/topics/pubsub">Redis PubSub</a> channel to use.</p>
+<p>Default: <strong>Incus</strong></p>
+
+<h3>TLS_ENABLED</h3>
+
+<p>This value controls whether the server will also listen on a TLS-enabled port.</p>
+
+<dl>
+    <dt>false</dt>
+    <dd>TLS is disabled, so the server will only listen over its insecure port.</dd>
+
+    <dt>true</dt>
+    <dd>TLS is enabled, so the socket will listen over both its insecure port and its TLS-enabled secure port.</dd>
+</dl>
+
+<p>Default: <strong>false</strong></p>
+
+<h3>TLS_PORT</h3>
+
+<p>This value controls what TCP port is exposed when using TLS</p>
+<p>Default: <strong>443</strong></p>
+
+<h3>CERT_FILE</h3>
+
+<p>This value controls what X.509 certificate is offered to clients connecting on the TLS port. The certificate is expected in PEM format. The 
+value is a path name resolved relative to the working directory of Incus. </p>
+<p>Default: <strong>cert.pem</strong></p>
+
+<h3>KEY_FILE</h3>
+
+<p>This value controls what X.509 private key is used for decrypting the TLS traffic. The key is expected in PEM format. </p>
+<p>Default: <strong>key.pem</strong></p>
 
 <h1>
     <a name="using-incus" class="anchor" href="#using-incus"><span class="octicon octicon-link"></span></a>Using Incus
