@@ -27,7 +27,7 @@ func init() {
 }
 
 func newSocket(ws *websocket.Conn, lp http.ResponseWriter, server *Server, UID string) *Socket {
-	return &Socket{<-socketIds, UID, "", ws, lp, server, make(chan *Message, 1000), make(chan bool), false}
+	return &Socket{<-socketIds, UID, "", ws, lp, server, make(chan *Message, 1), make(chan bool), false}
 }
 
 type Socket struct {
@@ -73,7 +73,6 @@ func (this *Socket) Close() error {
 }
 
 func (this *Socket) Authenticate(UID string) error {
-
 	if this.isWebsocket() {
 		var message = new(CommandMsg)
 		err := this.ws.ReadJSON(message)
@@ -125,7 +124,7 @@ func (this *Socket) listenForMessages() {
 					log.Printf("Error: %s\n", err.Error())
 				}
 
-				go this.Close()
+				this.Close()
 				return
 			}
 
@@ -140,32 +139,35 @@ func (this *Socket) listenForMessages() {
 func (this *Socket) listenForWrites() {
 	for {
 		select {
-		case message := <-this.buff:
-			if DEBUG {
-				log.Println("Sending:", message)
-			}
-
-			var err error
-			if this.isWebsocket() {
-				this.ws.SetWriteDeadline(time.Now().Add(writeWait))
-				err = this.ws.WriteJSON(message)
-			} else {
-				json_str, _ := json.Marshal(message)
-
-				_, err = fmt.Fprint(this.lp, string(json_str))
-			}
-
-			if this.isLongPoll() || err != nil {
-				if DEBUG && err != nil {
-					log.Printf("Error: %s\n", err.Error())
-				}
-
-				go this.Close()
-				return
-			}
-
 		case <-this.done:
 			return
+		case message := <-this.buff:
+			go this.writeMessage(message)
 		}
+	}
+}
+
+func (this *Socket) writeMessage(message *Message) {
+	if DEBUG {
+		log.Println("Sending:", message)
+	}
+
+	var err error
+	if this.isWebsocket() {
+		this.ws.SetWriteDeadline(time.Now().Add(writeWait))
+		err = this.ws.WriteJSON(message)
+	} else {
+		json_str, _ := json.Marshal(message)
+
+		_, err = fmt.Fprint(this.lp, string(json_str))
+	}
+
+	if this.isLongPoll() || err != nil {
+		if DEBUG && err != nil {
+			log.Printf("Error: %s\n", err.Error())
+		}
+
+		this.Close()
+		return
 	}
 }
