@@ -6,6 +6,9 @@ import (
 	"log"
 	"strings"
 	"time"
+
+	"github.com/alexjlockwood/gcm"
+	apns "github.com/anachronistic/apns"
 )
 
 type CommandMsg struct {
@@ -71,6 +74,12 @@ func (this *CommandMsg) FromRedis(server *Server) {
 
 	case "message":
 		this.sendMessage(server)
+
+	case "pushios":
+		this.pushiOS(server)
+
+	case "pushandroid":
+		this.pushAndroid(server)
 	}
 }
 
@@ -97,6 +106,99 @@ func (this *CommandMsg) sendMessage(server *Server) {
 		this.messagePage(page, server)
 	} else {
 		this.messageAll(server)
+	}
+}
+
+func (this *CommandMsg) pushiOS(server *Server) {
+	deviceToken, deviceToken_ok := this.Command["device_token"]
+	build, _ := this.Command["build"]
+
+	if !deviceToken_ok {
+		log.Println("Device token not provided!")
+		return
+	}
+
+	msg, err := this.formatMessage()
+	if err != nil {
+		log.Println("Could not format message")
+		return
+	}
+
+	payload := apns.NewPayload()
+	payload.Alert = msg.Data["message_text"]
+	payload.Sound = server.Config.Get("ios_push_sound")
+	payload.Badge = int(msg.Data["badge_count"].(float64))
+
+	pn := apns.NewPushNotification()
+	pn.DeviceToken = deviceToken
+	pn.AddPayload(payload)
+	pn.Set("payload", msg)
+
+	var apns_url string
+	var client *apns.Client
+
+	switch build {
+
+	case "store", "enterprise", "beta", "development":
+		if build == "development" {
+			apns_url = server.Config.Get("apns_sandbox_url")
+		} else {
+			apns_url = server.Config.Get("apns_production_url")
+		}
+
+		client = apns.NewClient(apns_url, server.Config.Get("apns_"+build+"_cert"), server.Config.Get("apns_"+build+"_private_key"))
+
+	default:
+		apns_url = server.Config.Get("apns_production_url")
+		client = apns.NewClient(apns_url, server.Config.Get("apns_store_cert"), server.Config.Get("apns_store_private_key"))
+	}
+
+	resp := client.Send(pn)
+	alert, _ := pn.PayloadString()
+
+	if resp.Error != nil {
+		log.Printf("Alert (iOS): %s\n", alert)
+		log.Printf("Error (iOS): %s\n", resp.Error)
+	}
+}
+
+func (this *CommandMsg) pushAndroid(server *Server) {
+	registration_ids, registration_ids_ok := this.Command["registration_ids"]
+
+	if !registration_ids_ok {
+		log.Println("Registration ID(s) not provided!")
+		return
+	}
+
+	msg, err := this.formatMessage()
+	if err != nil {
+		log.Println("Could not format message")
+		return
+	}
+
+	data := map[string]interface{}{"event": msg.Event, "data": msg.Data, "time": msg.Time}
+
+	regIDs := strings.Split(registration_ids, ",")
+	gcmMessage := gcm.NewMessage(data, regIDs...)
+
+	sender := &gcm.Sender{ApiKey: server.Config.Get("gcm_api_key")}
+
+	gcmResponse, gcmErr := sender.Send(gcmMessage, 2)
+	if gcmErr != nil {
+		log.Printf("Error (Android): %s\n", gcmErr)
+		return
+	}
+
+	if gcmResponse.Failure > 0 {
+		if !server.Config.GetBool("redis_enabled") {
+			log.Println("Could not push to android_error_queue since redis is not enabled")
+			return
+		}
+
+		failurePayload := map[string]interface{}{"registration_ids": regIDs, "results": gcmResponse.Results}
+
+		msg_str, _ := json.Marshal(failurePayload)
+		server.Store.redis.Push(server.Config.Get("android_error_queue"), string(msg_str))
 	}
 }
 
@@ -163,5 +265,5 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 
 func (this *CommandMsg) forwardToRedis(server *Server) {
 	msg_str, _ := json.Marshal(this)
-	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster    
+	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster
 }
