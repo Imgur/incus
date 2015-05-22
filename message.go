@@ -100,7 +100,6 @@ func (this *CommandMsg) sendMessage(server *Server) {
 	user, userok := this.Command["user"]
 	page, pageok := this.Command["page"]
 
-
 	if userok {
 		this.messageUser(user, page, server)
 	} else if pageok {

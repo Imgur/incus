@@ -127,15 +127,15 @@ func (this *RedisStore) Subscribe(c chan []string, channel string) (*redis.Clien
 
 func (this *RedisStore) subscribeOrReconnect(c chan []string, channel string, consumer *redis.Client) {
 	for {
-	    err := consumer.Subscribe(c, channel)
-	    if err != nil {
-	    	log.Println(err)
-	    	time.Sleep(time.Second)
-	    	log.Println("Reconnecting to redis...........")
+		err := consumer.Subscribe(c, channel)
+		if err != nil {
+			log.Println(err)
+			time.Sleep(time.Second)
+			log.Println("Reconnecting to redis...........")
 
-	    	consumer = redis.New()
+			consumer = redis.New()
 			consumer.ConnectNonBlock(this.server, this.port)
-	    }
+		}
 	}
 }
 
@@ -149,7 +149,7 @@ func (this *RedisStore) Poll(c chan string, queue string) error {
 			consumer, err = this.GetConn()
 			if err != nil {
 				time.Sleep(time.Millisecond * 100)
-				continue;
+				continue
 			}
 
 			message, err := consumer.LPop(queue)

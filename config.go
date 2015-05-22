@@ -20,7 +20,7 @@ func initConfig() Configuration {
 	ConfigOption(mymap, "LOG_LEVEL", "debug")
 
 	ConfigOption(mymap, "REDIS_MESSAGE_CHANNEL", "Incus")
-	redis_port_env, redis_port_chosen := ConfigOption(mymap, "REDIS_PORT_6379_TCP_PORT", "6379")
+	redis_port_chosen, redis_port_env := ConfigOption(mymap, "REDIS_PORT_6379_TCP_PORT", "6379")
 
 	if redis_port_env != "" {
 		_, redis_host_chosen := ConfigOption(mymap, "REDIS_PORT_6379_TCP_ADDR", "127.0.0.1")
