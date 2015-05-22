@@ -183,12 +183,18 @@ func (this *Server) initAppListener() {
 
 		select {
 		case subMessage = <-subReciever:
-			json.Unmarshal([]byte(subMessage[2]), cmd)
+			err = json.Unmarshal([]byte(subMessage[2]), cmd)
 		case pollMessage = <-queueReciever:
-			json.Unmarshal([]byte(pollMessage), cmd)
+			err = json.Unmarshal([]byte(pollMessage), cmd)
 		}
 
-		go cmd.FromRedis(this)
+		if err != nil {
+			if DEBUG {
+				log.Printf("Error decoding JSON: %s", err.Error())
+			}
+		} else {
+			go cmd.FromRedis(this)
+		}
 	}
 }
 
