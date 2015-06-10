@@ -36,7 +36,7 @@ func createServer(conf *Configuration, store *Storage) *Server {
 	var runtimeStats RuntimeStats
 
 	if conf.GetBool("datadog_enabled") {
-		runtimeStats, _ = NewDatadogStats()
+		runtimeStats, _ = NewDatadogStats(conf.Get("datadog_host"))
 	} else {
 		runtimeStats = &DiscardStats{}
 	}

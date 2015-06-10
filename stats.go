@@ -51,8 +51,8 @@ type DatadogStats struct {
 	dog *godspeed.Godspeed
 }
 
-func NewDatadogStats() (*DatadogStats, error) {
-	gdsp, err := godspeed.NewDefault()
+func NewDatadogStats(datadogHost string) (*DatadogStats, error) {
+	gdsp, err := godspeed.New(datadogHost, godspeed.DefaultPort, false)
 	if err == nil {
 		return &DatadogStats{gdsp}, nil
 	} else {
