@@ -32,6 +32,8 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 		log.Printf("Handling socket message of type %s\n", command)
 	}
 
+	sock.Server.Stats.LogCommand(strings.ToLower(command))
+
 	switch strings.ToLower(command) {
 	case "message":
 		if !CLIENT_BROAD {
@@ -159,8 +161,10 @@ func (this *CommandMsg) pushiOS(server *Server) {
 
 	resp := client.Send(pn)
 	alert, _ := pn.PayloadString()
+	server.Stats.LogAPNSPush()
 
 	if resp.Error != nil {
+		server.Stats.LogAPNSError()
 		log.Printf("Alert (iOS): %s\n", alert)
 		log.Printf("Error (iOS): %s\n", resp.Error)
 	}
@@ -187,13 +191,16 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 
 	sender := &gcm.Sender{ApiKey: server.Config.Get("gcm_api_key")}
 
+	server.Stats.LogGCMPush()
 	gcmResponse, gcmErr := sender.Send(gcmMessage, 2)
 	if gcmErr != nil {
+		server.Stats.LogGCMError()
 		log.Printf("Error (Android): %s\n", gcmErr)
 		return
 	}
 
 	if gcmResponse.Failure > 0 {
+		server.Stats.LogGCMFailure()
 		if !server.Config.GetBool("redis_enabled") {
 			log.Println("Could not push to android_error_queue since redis is not enabled")
 			return
@@ -217,6 +224,8 @@ func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
 		return
 	}
 
+	server.Stats.LogUserMessage()
+
 	for _, sock := range user {
 		if page != "" && page != sock.Page {
 			continue
@@ -234,6 +243,7 @@ func (this *CommandMsg) messageAll(server *Server) {
 		return
 	}
 
+	server.Stats.LogBroadcastMessage()
 	clients := server.Store.Clients()
 
 	for _, user := range clients {
@@ -252,6 +262,8 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 	if err != nil {
 		return
 	}
+
+	server.Stats.LogPageMessage()
 
 	pageMap := server.Store.getPage(page)
 	if pageMap == nil {

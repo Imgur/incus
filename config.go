@@ -19,6 +19,7 @@ func initConfig() Configuration {
 	ConfigOption(mymap, "LISTENING_PORT", "4000")
 	ConfigOption(mymap, "CONNECTION_TIMEOUT", "0")
 	ConfigOption(mymap, "LOG_LEVEL", "debug")
+	ConfigOption(mymap, "DATADOG_ENABLED", "false")
 
 	_, redisEnabled, _ := ConfigOption(mymap, "REDIS_ENABLED", "false")
 	if redisEnabled == "true" {

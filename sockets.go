@@ -129,6 +129,8 @@ func (this *Socket) listenForMessages() {
 				return
 			}
 
+			this.Server.Stats.LogReadMessage()
+
 			if DEBUG {
 				log.Println(command)
 			}
@@ -154,6 +156,8 @@ func (this *Socket) listenForWrites() {
 
 				_, err = fmt.Fprint(this.lp, string(json_str))
 			}
+
+			this.Server.Stats.LogWriteMessage()
 
 			if this.isLongPoll() || err != nil {
 				if DEBUG && err != nil {
