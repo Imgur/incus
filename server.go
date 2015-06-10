@@ -21,6 +21,7 @@ type Server struct {
 	ID     string
 	Config *Configuration
 	Store  *Storage
+	Stats  RuntimeStats
 
 	timeout time.Duration
 }
@@ -31,7 +32,22 @@ func createServer(conf *Configuration, store *Storage) *Server {
 	id := string(hash.Sum(nil))
 
 	timeout := time.Duration(conf.GetInt("connection_timeout"))
-	return &Server{id, conf, store, timeout}
+
+	var runtimeStats RuntimeStats
+
+	if conf.GetBool("datadog_enabled") {
+		runtimeStats, _ = NewDatadogStats(conf.Get("datadog_host"))
+	} else {
+		runtimeStats = &DiscardStats{}
+	}
+
+	return &Server{
+		ID:      id,
+		Config:  conf,
+		Store:   store,
+		timeout: timeout,
+		Stats:   runtimeStats,
+	}
 }
 
 func (this *Server) initSocketListener() {
@@ -56,6 +72,7 @@ func (this *Server) initSocketListener() {
 
 		defer func() {
 			ws.Close()
+			this.Stats.LogWebsocketDisconnection()
 			if DEBUG {
 				log.Println("Socket Closed")
 			}
@@ -63,6 +80,7 @@ func (this *Server) initSocketListener() {
 
 		sock := newSocket(ws, nil, this, "")
 
+		this.Stats.LogWebsocketConnection()
 		if DEBUG {
 			log.Printf("Socket connected via %s\n", ws.RemoteAddr())
 		}

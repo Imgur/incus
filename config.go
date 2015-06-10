@@ -19,6 +19,10 @@ func initConfig() Configuration {
 	ConfigOption(mymap, "LISTENING_PORT", "4000")
 	ConfigOption(mymap, "CONNECTION_TIMEOUT", "0")
 	ConfigOption(mymap, "LOG_LEVEL", "debug")
+	_, ddEnabled, _ := ConfigOption(mymap, "DATADOG_ENABLED", "false")
+	if ddEnabled == "true" {
+		ConfigOption(mymap, "DATADOG_HOST", "127.0.0.1")
+	}
 
 	_, redisEnabled, _ := ConfigOption(mymap, "REDIS_ENABLED", "false")
 	if redisEnabled == "true" {
