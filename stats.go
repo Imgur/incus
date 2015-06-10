@@ -56,9 +56,23 @@ type DatadogStats struct {
 }
 
 func NewDatadogStats(datadogHost string) (*DatadogStats, error) {
-	ips, err := net.LookupIP(datadogHost)
-	if len(ips) > 0 {
-		gdsp, err := godspeed.New(ips[0].String(), godspeed.DefaultPort, false)
+	var ip net.IP = nil
+	var err error = nil
+
+	// Assume datadogHost is an IP and try to parse it
+	ip = net.ParseIP(datadogHost)
+
+	// Parsing failed
+	if ip == nil {
+		ips, _ := net.LookupIP(datadogHost)
+
+		if len(ips) > 0 {
+			ip = ips[0]
+		}
+	}
+
+	if ip != nil {
+		gdsp, err := godspeed.New(ip.String(), godspeed.DefaultPort, false)
 		if err == nil {
 			return &DatadogStats{gdsp}, nil
 		}
