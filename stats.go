@@ -2,9 +2,12 @@ package main
 
 import (
 	"github.com/PagerDuty/godspeed"
+	"net"
 )
 
 type RuntimeStats interface {
+	LogStartup()
+
 	LogClientCount(int64)
 
 	LogCommand(cmdType string)
@@ -30,6 +33,7 @@ type RuntimeStats interface {
 
 type DiscardStats struct{}
 
+func (d *DiscardStats) LogStartup()                {}
 func (d *DiscardStats) LogClientCount(int64)       {}
 func (d *DiscardStats) LogCommand(cmdType string)  {}
 func (d *DiscardStats) LogPageMessage()            {}
@@ -52,16 +56,23 @@ type DatadogStats struct {
 }
 
 func NewDatadogStats(datadogHost string) (*DatadogStats, error) {
-	gdsp, err := godspeed.New(datadogHost, godspeed.DefaultPort, false)
-	if err == nil {
-		return &DatadogStats{gdsp}, nil
-	} else {
-		return nil, err
+	ips, err := net.LookupIP(datadogHost)
+	if len(ips) > 0 {
+		gdsp, err := godspeed.New(ips[0].String(), godspeed.DefaultPort, false)
+		if err == nil {
+			return &DatadogStats{gdsp}, nil
+		}
 	}
+
+	return nil, err
+}
+
+func (d *DatadogStats) LogStartup() {
+	d.dog.Incr("incus.startup", nil)
 }
 
 func (d *DatadogStats) LogClientCount(clients int64) {
-	d.dog.Count("incus.client_count", float64(clients), nil)
+	d.dog.Gauge("incus.client_count", float64(clients), nil)
 }
 
 func (d *DatadogStats) LogCommand(cmdType string) {
