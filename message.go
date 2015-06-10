@@ -76,10 +76,14 @@ func (this *CommandMsg) FromRedis(server *Server) {
 		this.sendMessage(server)
 
 	case "pushios":
-		this.pushiOS(server)
+		if server.Config.GetBool("apns_enabled") {
+			this.pushiOS(server)
+		}
 
 	case "pushandroid":
-		this.pushAndroid(server)
+		if server.Config.GetBool("gcm_enabled") {
+			this.pushAndroid(server)
+		}
 	}
 }
 
