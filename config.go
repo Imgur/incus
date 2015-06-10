@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -19,43 +20,62 @@ func initConfig() Configuration {
 	ConfigOption(mymap, "CONNECTION_TIMEOUT", "0")
 	ConfigOption(mymap, "LOG_LEVEL", "debug")
 
-	ConfigOption(mymap, "REDIS_MESSAGE_CHANNEL", "Incus")
-	redis_port_chosen, redis_port_env := ConfigOption(mymap, "REDIS_PORT_6379_TCP_PORT", "6379")
-
-	if redis_port_env != "" {
-		_, redis_host_chosen := ConfigOption(mymap, "REDIS_PORT_6379_TCP_ADDR", "127.0.0.1")
-
-		mymap["redis_host"] = redis_host_chosen
-		mymap["redis_port"] = redis_port_chosen
-		mymap["redis_enabled"] = "true"
-	} else {
-		mymap["redis_enabled"] = "false"
+	_, redisEnabled, _ := ConfigOption(mymap, "REDIS_ENABLED", "false")
+	if redisEnabled == "true" {
+		ConfigOption(mymap, "REDIS_MESSAGE_CHANNEL", "Incus")
+		ConfigOption(mymap, "REDIS_PORT_6379_TCP_PORT", "6379")
+		ConfigOption(mymap, "REDIS_PORT_6379_TCP_ADDR", "127.0.0.1")
+		ConfigOption(mymap, "REDIS_MESSAGE_QUEUE", "Incus_Queue")
 	}
 
-	tls_enabled_env, _ := ConfigOption(mymap, "TLS_ENABLED", "false")
+	_, tlsEnabled, _ := ConfigOption(mymap, "TLS_ENABLED", "false")
 
-	if tls_enabled_env != "" {
+	if tlsEnabled == "true" {
 		ConfigOption(mymap, "TLS_PORT", "443")
 		ConfigOption(mymap, "CERT_FILE", "cert.pem")
 		ConfigOption(mymap, "KEY_FILE", "key.pem")
 	}
 
+	_, apnsEnabled, _ := ConfigOption(mymap, "APNS_ENABLED", "false")
+
+	if apnsEnabled == "true" {
+		fileOption(ConfigOption(mymap, "APNS_STORE_CERT", "myapnsappcert.pem"))
+		fileOption(ConfigOption(mymap, "APNS_STORE_PRIVATE_KEY", "myapnsappprivatekey.pem"))
+		fileOption(ConfigOption(mymap, "APNS_ENTERPRISE_CERT", "myapnsappcert.pem"))
+		fileOption(ConfigOption(mymap, "APNS_ENTERPRISE_PRIVATE_KEY", "myapnsappprivatekey.pem"))
+		fileOption(ConfigOption(mymap, "APNS_BETA_CERT", "myapnsappcert.pem"))
+		fileOption(ConfigOption(mymap, "APNS_BETA_PRIVATE_KEY", "myapnsappprivatekey.pem"))
+		fileOption(ConfigOption(mymap, "APNS_DEVELOPMENT_CERT", "myapnsappcert.pem"))
+		fileOption(ConfigOption(mymap, "APNS_DEVELOPMENT_PRIVATE_KEY", "myapnsappprivatekey.pem"))
+
+		ConfigOption(mymap, "APNS_PRODUCTION_URL", "gateway.push.apple.com:2195")
+		ConfigOption(mymap, "APNS_SANDBOX_URL", "gateway.sandbox.push.apple.com:2195")
+		ConfigOption(mymap, "IOS_PUSH_SOUND", "bingbong.aiff")
+	}
+
+	_, gcmEnabled, _ := ConfigOption(mymap, "GCM_ENABLED", "false")
+
+	if gcmEnabled == "true" {
+		ConfigOption(mymap, "GCM_API_KEY", "foobar")
+		ConfigOption(mymap, "ANDROID_ERROR_QUEUE", "Incus_Android_Error_Queue")
+	}
+
 	return Configuration{mymap}
 }
 
-func ConfigOption(mymap map[string]string, key, default_value string) (string, string) {
-	env_value := os.Getenv(key)
-	var chosen_value string
+func ConfigOption(mymap map[string]string, key, default_value string) (string, string, string) {
+	envValue := os.Getenv(key)
+	var chosenValue string
 
-	if env_value == "" {
-		chosen_value = default_value
+	if envValue == "" {
+		chosenValue = default_value
 	} else {
-		chosen_value = env_value
+		chosenValue = envValue
 	}
 
-	mymap[strings.ToLower(key)] = chosen_value
+	mymap[strings.ToLower(key)] = chosenValue
 
-	return chosen_value, env_value
+	return strings.ToLower(key), chosenValue, envValue
 }
 
 func (this *Configuration) Get(name string) string {
@@ -88,4 +108,11 @@ func (this *Configuration) GetBool(name string) bool {
 	}
 
 	return val == "true"
+}
+
+// Asserts that the chosen value exists on the local file system by panicking if it doesn't
+func fileOption(envName, chosenValue, envValue string) {
+	if _, err := os.Stat(chosenValue); err != nil {
+		panic(fmt.Errorf("Chosen option %s=%s does not exist!", envName, chosenValue))
+	}
 }
