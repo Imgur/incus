@@ -1,6 +1,8 @@
 package main
 
-import "sync"
+import (
+	"sync"
+)
 
 type Storage struct {
 	memory      *MemoryStore
@@ -15,10 +17,9 @@ func initStore(Config *Configuration) *Storage {
 	store_type := "memory"
 	var redisStore *RedisStore
 
-	redis_enabled := Config.Get("redis_enabled")
-	if redis_enabled == "true" {
-		redis_host := Config.Get("redis_host")
-		redis_port := uint(Config.GetInt("redis_port"))
+	if Config.GetBool("redis_enabled") {
+		redis_host := Config.Get("redis_port_6379_tcp_addr")
+		redis_port := uint(Config.GetInt("redis_port_6379_tcp_port"))
 
 		redisStore = newRedisStore(redis_host, redis_port)
 		store_type = "redis"

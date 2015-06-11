@@ -21,6 +21,7 @@ type Server struct {
 	ID     string
 	Config *Configuration
 	Store  *Storage
+	Stats  RuntimeStats
 
 	timeout time.Duration
 }
@@ -31,7 +32,23 @@ func createServer(conf *Configuration, store *Storage) *Server {
 	id := string(hash.Sum(nil))
 
 	timeout := time.Duration(conf.GetInt("connection_timeout"))
-	return &Server{id, conf, store, timeout}
+
+	var runtimeStats RuntimeStats
+
+	if conf.GetBool("datadog_enabled") {
+		runtimeStats, _ = NewDatadogStats(conf.Get("datadog_host"))
+		runtimeStats.LogStartup()
+	} else {
+		runtimeStats = &DiscardStats{}
+	}
+
+	return &Server{
+		ID:      id,
+		Config:  conf,
+		Store:   store,
+		timeout: timeout,
+		Stats:   runtimeStats,
+	}
 }
 
 func (this *Server) initSocketListener() {
@@ -56,6 +73,7 @@ func (this *Server) initSocketListener() {
 
 		defer func() {
 			ws.Close()
+			this.Stats.LogWebsocketDisconnection()
 			if DEBUG {
 				log.Println("Socket Closed")
 			}
@@ -63,6 +81,7 @@ func (this *Server) initSocketListener() {
 
 		sock := newSocket(ws, nil, this, "")
 
+		this.Stats.LogWebsocketConnection()
 		if DEBUG {
 			log.Printf("Socket connected via %s\n", ws.RemoteAddr())
 		}
@@ -158,22 +177,35 @@ func (this *Server) initAppListener() {
 		return
 	}
 
-	rec := make(chan []string, 10000)
-	consumer, err := this.Store.redis.Subscribe(rec, this.Config.Get("redis_message_channel"))
+	subReciever := make(chan []string, 10000)
+	queueReciever := make(chan string, 10000)
+
+	subConsumer, err := this.Store.redis.Subscribe(subReciever, this.Config.Get("redis_message_channel"))
 	if err != nil {
 		log.Fatal("Couldn't subscribe to redis channel")
 	}
-	defer consumer.Quit()
+	defer subConsumer.Quit()
+
+	err = this.Store.redis.Poll(queueReciever, this.Config.Get("redis_message_queue"))
+	if err != nil {
+		log.Fatal("Couldn't start polling of redis queue")
+	}
 
 	if DEBUG {
 		log.Println("LISENING FOR REDIS MESSAGE")
 	}
-	var ms []string
-	for {
-		ms = <-rec
 
+	var subMessage []string
+	var pollMessage string
+	for {
 		var cmd = new(CommandMsg)
-		err = json.Unmarshal([]byte(ms[2]), cmd)
+
+		select {
+		case subMessage = <-subReciever:
+			err = json.Unmarshal([]byte(subMessage[2]), cmd)
+		case pollMessage = <-queueReciever:
+			err = json.Unmarshal([]byte(pollMessage), cmd)
+		}
 
 		if err != nil {
 			if DEBUG {

@@ -2,9 +2,9 @@ package main
 
 import (
 	"errors"
-	"log"
-
 	"github.com/gosexy/redis"
+	"log"
+	"time"
 )
 
 const ClientsKey = "SocketClients"
@@ -37,7 +37,7 @@ func newRedisStore(redis_host string, redis_port uint) *RedisStore {
 
 		redisPool{
 			connections: make(chan *redis.Client, 6),
-			maxIdle:     6,
+			maxIdle:     10,
 
 			connFn: func() (*redis.Client, error) {
 				client := redis.New()
@@ -119,10 +119,51 @@ func (this *RedisStore) Subscribe(c chan []string, channel string) (*redis.Clien
 		return nil, err
 	}
 
-	go consumer.Subscribe(c, channel)
+	go this.subscribeOrReconnect(c, channel, consumer)
 	<-c // ignore subscribe command
 
 	return consumer, nil
+}
+
+func (this *RedisStore) subscribeOrReconnect(c chan []string, channel string, consumer *redis.Client) {
+	for {
+		err := consumer.Subscribe(c, channel)
+		if err != nil {
+			log.Println(err)
+			time.Sleep(time.Second)
+			log.Println("Reconnecting to redis...........")
+
+			consumer = redis.New()
+			consumer.ConnectNonBlock(this.server, this.port)
+		}
+	}
+}
+
+func (this *RedisStore) Poll(c chan string, queue string) error {
+	go func() {
+		consumer, _ := this.GetConn()
+		defer this.CloseConn(consumer)
+		var err error
+
+		for {
+			consumer, err = this.GetConn()
+			if err != nil {
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
+
+			message, err := consumer.LPop(queue)
+			this.CloseConn(consumer)
+
+			if err == nil && message != "" {
+				c <- message
+			} else {
+				time.Sleep(time.Millisecond * 100)
+			}
+		}
+	}()
+
+	return nil
 }
 
 func (this *RedisStore) Publish(channel string, message string) {
@@ -133,6 +174,16 @@ func (this *RedisStore) Publish(channel string, message string) {
 	defer this.CloseConn(publisher)
 
 	publisher.Publish(channel, message)
+}
+
+func (this *RedisStore) Push(queue string, message string) {
+	client, err := this.GetConn()
+	if err != nil {
+		return
+	}
+	defer this.CloseConn(client)
+
+	client.RPush(queue, message)
 }
 
 func (this *RedisStore) Save(sock *Socket) error {
