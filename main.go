@@ -43,6 +43,12 @@ func main() {
 	go func() {
 		for {
 			server.Stats.LogClientCount(store.memory.clientCount)
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	go func() {
+		for {
 			log.Println(store.memory.clientCount)
 			time.Sleep(20 * time.Second)
 		}
