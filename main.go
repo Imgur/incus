@@ -37,15 +37,22 @@ func main() {
 
 	store = initStore(&conf)
 
+	CLIENT_BROAD = conf.GetBool("client_broadcasts")
+	server := createServer(&conf, store)
+
+	go func() {
+		for {
+			server.Stats.LogClientCount(store.memory.clientCount)
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
 	go func() {
 		for {
 			log.Println(store.memory.clientCount)
 			time.Sleep(20 * time.Second)
 		}
 	}()
-
-	CLIENT_BROAD = conf.GetBool("client_broadcasts")
-	server := createServer(&conf, store)
 
 	go server.initAppListener()
 	go server.initSocketListener()
