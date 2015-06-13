@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -27,7 +28,17 @@ func init() {
 }
 
 func newSocket(ws *websocket.Conn, lp http.ResponseWriter, server *Server, UID string) *Socket {
-	return &Socket{<-socketIds, UID, "", ws, lp, server, make(chan *Message, 1000), make(chan bool), false}
+	return &Socket{
+		SID:    <-socketIds,
+		UID:    UID,
+		ws:     ws,
+		lp:     lp,
+		Server: server,
+		buff:   make(chan *Message, 1000),
+		done:   make(chan bool),
+		closed: false,
+		lock:   sync.Mutex{},
+	}
 }
 
 type Socket struct {
@@ -42,6 +53,9 @@ type Socket struct {
 	buff   chan *Message
 	done   chan bool
 	closed bool
+
+	// The purpose of this mutex is to prevent writing to the closed channel buff.
+	lock sync.Mutex
 }
 
 func (this *Socket) isWebsocket() bool {
@@ -57,6 +71,9 @@ func (this *Socket) isClosed() bool {
 }
 
 func (this *Socket) Close() error {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
 	if !this.closed {
 		this.closed = true
 

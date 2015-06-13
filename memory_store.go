@@ -99,6 +99,7 @@ func (this *MemoryStore) UnsetPage(sock *Socket) error {
 
 func (this *MemoryStore) getPage(page string) map[string]*Socket {
 	var p, exists = this.pages[page]
+
 	if !exists {
 		return nil
 	}

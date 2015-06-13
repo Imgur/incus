@@ -119,22 +119,23 @@ func (this *RedisStore) Subscribe(c chan []string, channel string) (*redis.Clien
 		return nil, err
 	}
 
-	go this.subscribeOrReconnect(c, channel, consumer)
-	<-c // ignore subscribe command
+	go this.subscribeOrReconnect(c, channel, &consumer)
 
 	return consumer, nil
 }
 
-func (this *RedisStore) subscribeOrReconnect(c chan []string, channel string, consumer *redis.Client) {
+func (this *RedisStore) subscribeOrReconnect(c chan []string, channel string, consumer **redis.Client) {
 	for {
-		err := consumer.Subscribe(c, channel)
+		err := (*consumer).Subscribe(c, channel)
 		if err != nil {
 			log.Println(err)
 			time.Sleep(time.Second)
 			log.Println("Reconnecting to redis...........")
 
-			consumer = redis.New()
-			consumer.ConnectNonBlock(this.server, this.port)
+			*consumer = redis.New()
+			(*consumer).ConnectNonBlock(this.server, this.port)
+		} else {
+			<-c // ignore subscribe command output
 		}
 	}
 }
