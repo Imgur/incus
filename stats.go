@@ -10,7 +10,7 @@ type RuntimeStats interface {
 
 	LogClientCount(int64)
 
-	LogCommand(cmdType string)
+	LogCommand(from, cmdType string)
 	LogPageMessage()
 	LogUserMessage()
 	LogBroadcastMessage()
@@ -33,23 +33,23 @@ type RuntimeStats interface {
 
 type DiscardStats struct{}
 
-func (d *DiscardStats) LogStartup()                {}
-func (d *DiscardStats) LogClientCount(int64)       {}
-func (d *DiscardStats) LogCommand(cmdType string)  {}
-func (d *DiscardStats) LogPageMessage()            {}
-func (d *DiscardStats) LogUserMessage()            {}
-func (d *DiscardStats) LogBroadcastMessage()       {}
-func (d *DiscardStats) LogWebsocketConnection()    {}
-func (d *DiscardStats) LogWebsocketDisconnection() {}
-func (d *DiscardStats) LogReadMessage()            {}
-func (d *DiscardStats) LogWriteMessage()           {}
-func (d *DiscardStats) LogLongpollConnect()        {}
-func (d *DiscardStats) LogLongpollDisconnect()     {}
-func (d *DiscardStats) LogAPNSPush()               {}
-func (d *DiscardStats) LogGCMPush()                {}
-func (d *DiscardStats) LogAPNSError()              {}
-func (d *DiscardStats) LogGCMError()               {}
-func (d *DiscardStats) LogGCMFailure()             {}
+func (d *DiscardStats) LogStartup()                     {}
+func (d *DiscardStats) LogClientCount(int64)            {}
+func (d *DiscardStats) LogCommand(from, cmdType string) {}
+func (d *DiscardStats) LogPageMessage()                 {}
+func (d *DiscardStats) LogUserMessage()                 {}
+func (d *DiscardStats) LogBroadcastMessage()            {}
+func (d *DiscardStats) LogWebsocketConnection()         {}
+func (d *DiscardStats) LogWebsocketDisconnection()      {}
+func (d *DiscardStats) LogReadMessage()                 {}
+func (d *DiscardStats) LogWriteMessage()                {}
+func (d *DiscardStats) LogLongpollConnect()             {}
+func (d *DiscardStats) LogLongpollDisconnect()          {}
+func (d *DiscardStats) LogAPNSPush()                    {}
+func (d *DiscardStats) LogGCMPush()                     {}
+func (d *DiscardStats) LogAPNSError()                   {}
+func (d *DiscardStats) LogGCMError()                    {}
+func (d *DiscardStats) LogGCMFailure()                  {}
 
 type DatadogStats struct {
 	dog *godspeed.Godspeed
@@ -89,9 +89,11 @@ func (d *DatadogStats) LogClientCount(clients int64) {
 	d.dog.Gauge("incus.client_count", float64(clients), nil)
 }
 
-func (d *DatadogStats) LogCommand(cmdType string) {
+func (d *DatadogStats) LogCommand(from, cmdType string) {
 	d.dog.Incr("incus.command", nil)
+	d.dog.Incr("incus.command."+from, nil)
 	d.dog.Incr("incus.command."+cmdType, nil)
+	d.dog.Incr("incus.command."+from+"."+cmdType, nil)
 }
 
 func (d *DatadogStats) LogPageMessage() {
