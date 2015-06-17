@@ -32,7 +32,7 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 		log.Printf("Handling socket message of type %s\n", command)
 	}
 
-	sock.Server.Stats.LogCommand(strings.ToLower(command))
+	sock.Server.Stats.LogCommand("websocket", strings.ToLower(command))
 
 	switch strings.ToLower(command) {
 	case "message":
@@ -67,6 +67,8 @@ func (this *CommandMsg) FromRedis(server *Server) {
 	if !ok {
 		return
 	}
+
+	server.Stats.LogCommand("redis", strings.ToLower(command))
 
 	if DEBUG {
 		log.Printf("Handling redis message of type %s\n", command)
