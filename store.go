@@ -1,4 +1,4 @@
-package main
+package incus
 
 import (
 	"sync"
@@ -13,7 +13,7 @@ type Storage struct {
 	pageMu sync.RWMutex
 }
 
-func initStore(Config *Configuration) *Storage {
+func NewStore(Config *Configuration) *Storage {
 	store_type := "memory"
 	var redisStore *RedisStore
 

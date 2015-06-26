@@ -1,4 +1,4 @@
-package main
+package incus
 
 import (
 	"crypto/md5"
@@ -26,7 +26,7 @@ type Server struct {
 	timeout time.Duration
 }
 
-func createServer(conf *Configuration, store *Storage) *Server {
+func NewServer(conf *Configuration, store *Storage) *Server {
 	hash := md5.New()
 	io.WriteString(hash, time.Now().String())
 	id := string(hash.Sum(nil))
@@ -51,7 +51,7 @@ func createServer(conf *Configuration, store *Storage) *Server {
 	}
 }
 
-func (this *Server) initSocketListener() {
+func (this *Server) ListenFromSockets() {
 	Connect := func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed", 405)
@@ -112,7 +112,7 @@ func (this *Server) initSocketListener() {
 	http.HandleFunc("/socket", Connect)
 }
 
-func (this *Server) initLongPollListener() {
+func (this *Server) ListenFromLongpoll() {
 	LpConnect := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			r.Body.Close()
@@ -172,7 +172,7 @@ func (this *Server) initLongPollListener() {
 	http.HandleFunc("/lp", LpConnect)
 }
 
-func (this *Server) initAppListener() {
+func (this *Server) ListenFromRedis() {
 	if !this.Config.GetBool("redis_enabled") {
 		return
 	}
@@ -216,7 +216,7 @@ func (this *Server) initAppListener() {
 	}
 }
 
-func (this *Server) initPingListener() {
+func (this *Server) ListenForHTTPPings() {
 	pingHandler := func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "OK")
 	}
@@ -224,10 +224,10 @@ func (this *Server) initPingListener() {
 	http.HandleFunc("/ping", pingHandler)
 }
 
-func (this *Server) sendHeartbeats() {
+func (this *Server) SendHeartbeatsPeriodically(period time.Duration) {
 
 	for {
-		time.Sleep(20 * time.Second)
+		time.Sleep(period)
 
 		clients := this.Store.Clients()
 
@@ -242,5 +242,19 @@ func (this *Server) sendHeartbeats() {
 
 			}
 		}
+	}
+}
+
+func (this *Server) RecordStats(period time.Duration) {
+	for {
+		this.Stats.LogClientCount(this.Store.memory.clientCount)
+		time.Sleep(period)
+	}
+}
+
+func (this *Server) LogConnectedClientsPeriodically(period time.Duration) {
+	for {
+		log.Printf("There are %d connected clients\n", this.Store.memory.clientCount)
+		time.Sleep(period)
 	}
 }

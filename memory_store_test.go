@@ -1,11 +1,11 @@
-package main
+package incus
 
 import (
 	"testing"
 )
 
-var Config = initConfig()
-var MemStore = initStore(&Config).memory
+var Config = NewConfig()
+var MemStore = NewStore(&Config).memory
 var Socket1 *Socket
 var Socket2 *Socket
 var Socket3 *Socket

@@ -1,4 +1,4 @@
-package main
+package incus
 
 import (
 	"github.com/PagerDuty/godspeed"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Imgur/incus"
 	"log"
 	"net/http"
 	"os"
@@ -11,9 +12,7 @@ import (
 	"time"
 )
 
-var DEBUG bool
-var CLIENT_BROAD bool
-var store *Storage
+var store *incus.Storage
 
 func main() {
 	if os.Getenv("GOMAXPROCS") == "" {
@@ -25,46 +24,34 @@ func main() {
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("FATAL: %s", err)
+			log.Printf("Caught panic in the main thread: %s", err)
 			shutdown()
 		}
 	}()
 
-	conf := initConfig()
+	conf := incus.NewConfig()
 	initLogger(conf)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	InstallSignalHandlers(signals)
 
-	store = initStore(&conf)
+	store = incus.NewStore(&conf)
 
-	CLIENT_BROAD = conf.GetBool("client_broadcasts")
-	server := createServer(&conf, store)
+	incus.CLIENT_BROAD = conf.GetBool("client_broadcasts")
+	server := incus.NewServer(&conf, store)
 
-	go func() {
-		for {
-			server.Stats.LogClientCount(store.memory.clientCount)
-			time.Sleep(1 * time.Second)
-		}
-	}()
-
-	go func() {
-		for {
-			log.Println(store.memory.clientCount)
-			time.Sleep(20 * time.Second)
-		}
-	}()
-
-	go server.initAppListener()
-	go server.initSocketListener()
-	go server.initLongPollListener()
-	go server.initPingListener()
-	go server.sendHeartbeats()
+	go server.RecordStats(1 * time.Second)
+	go server.LogConnectedClientsPeriodically(20 * time.Second)
+	go server.ListenFromRedis()
+	go server.ListenFromSockets()
+	go server.ListenFromLongpoll()
+	go server.ListenForHTTPPings()
+	go server.SendHeartbeatsPeriodically(20 * time.Second)
 
 	go listenAndServeTLS(conf)
 	listenAndServe(conf)
 }
 
-func listenAndServe(conf Configuration) {
+func listenAndServe(conf incus.Configuration) {
 	listenAddr := fmt.Sprintf(":%s", conf.Get("listening_port"))
 	err := http.ListenAndServe(listenAddr, nil)
 	if err != nil {
@@ -72,7 +59,7 @@ func listenAndServe(conf Configuration) {
 	}
 }
 
-func listenAndServeTLS(conf Configuration) {
+func listenAndServeTLS(conf incus.Configuration) {
 	if conf.GetBool("tls_enabled") {
 		tlsListenAddr := fmt.Sprintf(":%s", conf.Get("tls_port"))
 		err := http.ListenAndServeTLS(tlsListenAddr, conf.Get("cert_file"), conf.Get("key_file"), nil)
@@ -91,18 +78,14 @@ func InstallSignalHandlers(signals chan os.Signal) {
 	}()
 }
 
-func initLogger(conf Configuration) {
-	DEBUG = false
+func initLogger(conf incus.Configuration) {
+	incus.DEBUG = false
 	if conf.Get("log_level") == "debug" {
-		DEBUG = true
+		incus.DEBUG = true
 	}
 }
 
 func shutdown() {
-	if store != nil {
-		log.Println("clearing redis memory...")
-	}
-
 	log.Println("Terminated")
 	os.Exit(0)
 }
