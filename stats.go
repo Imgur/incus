@@ -16,6 +16,7 @@ type RuntimeStats interface {
 	LogBroadcastMessage()
 	LogReadMessage()
 	LogWriteMessage()
+	LogInvalidJSON()
 
 	LogWebsocketConnection()
 	LogWebsocketDisconnection()
@@ -50,6 +51,7 @@ func (d *DiscardStats) LogGCMPush()                     {}
 func (d *DiscardStats) LogAPNSError()                   {}
 func (d *DiscardStats) LogGCMError()                    {}
 func (d *DiscardStats) LogGCMFailure()                  {}
+func (d *DiscardStats) LogInvalidJSON()                 {}
 
 type DatadogStats struct {
 	dog *godspeed.Godspeed
@@ -153,4 +155,8 @@ func (d *DatadogStats) LogGCMError() {
 
 func (d *DatadogStats) LogGCMFailure() {
 	d.dog.Incr("incus.gcm.fail", nil)
+}
+
+func (d *DatadogStats) LogInvalidJSON() {
+	d.dog.Incr("incus.jsonerror", nil)
 }

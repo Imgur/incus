@@ -208,9 +208,8 @@ func (this *Server) initAppListener() {
 		}
 
 		if err != nil {
-			if DEBUG {
-				log.Printf("Error decoding JSON: %s", err.Error())
-			}
+			log.Printf("Error decoding JSON: %s", err.Error())
+			this.Stats.LogInvalidJSON()
 		} else {
 			go cmd.FromRedis(this)
 		}
