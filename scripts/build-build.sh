@@ -4,4 +4,4 @@
 BUILDR=". ./incus"
 
 go get -v ./...
-go install -v ./... && go vet ./... && go test -v $BUILDR
+go install -v $BUILDR && go vet ./... && go test -v $BUILDR
