@@ -115,7 +115,7 @@ func (this *RedisStore) Subscribe(c chan []byte, channel string) (redis.Conn, er
 		return nil, err
 	}
 
-	psc := redis.PubSubConn{conn}
+	psc := redis.PubSubConn{Conn: conn}
 	psc.Subscribe(channel)
 	go func() {
 		defer conn.Close()
@@ -125,12 +125,13 @@ func (this *RedisStore) Subscribe(c chan []byte, channel string) (redis.Conn, er
 				c <- v.Data
 			case redis.Subscription:
 			case error:
+				log.Printf("Error receiving: %s. Reconnecting...", v.Error())
 				conn, err = this.GetConn()
 				if err != nil {
 					log.Println(err)
 				}
 
-				psc = redis.PubSubConn{conn}
+				psc = redis.PubSubConn{Conn: conn}
 				psc.Subscribe(channel)
 			}
 		}
