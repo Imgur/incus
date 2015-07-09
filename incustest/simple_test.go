@@ -2,8 +2,9 @@ package incustest
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Imgur/incus"
-	"github.com/gosexy/redis"
+	"github.com/garyburd/redigo/redis"
 	"io/ioutil"
 	"log"
 	"net"
@@ -16,7 +17,7 @@ import (
 
 var INCUSHOST = "127.0.0.1:4000"
 var REDISHOST = "127.0.0.1"
-var REDISPORT = uint(6379)
+var REDISPORT = 6379
 
 func TestMain(m *testing.M) {
 	// Block until incus is ready
@@ -72,17 +73,16 @@ func sendCommandLP(command, fromUser string) {
 	http.PostForm("http://"+INCUSHOST+"/lp", lpParams)
 }
 
-func sendCommandRedis(channel, command string) {
+func doredis(command string, args ...interface{}) {
 	go func() {
-		rds := redis.New()
-		defer rds.Close()
-		err := rds.Connect(REDISHOST, REDISPORT)
+		rds, err := redis.Dial("tcp", fmt.Sprintf("%s:%d", REDISHOST, REDISPORT))
 		if err != nil {
 			log.Fatalf("Failed to connect to redis: %s", err.Error())
 		}
-		_, err = rds.Publish(channel, command)
+		defer rds.Close()
+		_, err = rds.Do(command, args...)
 		if err != nil {
-			log.Fatalf("Failed to publish: %s", err.Error())
+			log.Fatalf("Failed to execute command: %s", err.Error())
 		}
 	}()
 }
@@ -115,7 +115,7 @@ func TestReceivingMessageFromLongpollViaLongpoll(t *testing.T) {
 func TestReceivingMessageFromLongpollViaRedis(t *testing.T) {
 	msgChan := make(chan []byte)
 	go pullMessage(msgChan, "", "bar")
-	go sendCommandRedis("Incus", `{"command":{"command":"message","user":"bar"},"message":{"event":"foobar","data":{},"time":1}}`)
+	go doredis("PUBLISH", "Incus", `{"command":{"command":"message","user":"bar"},"message":{"event":"foobar","data":{},"time":1}}`)
 	select {
 	case msgBytes, ok := <-msgChan:
 		if !ok {
@@ -140,21 +140,16 @@ func TestReceivingMessageFromLongpollViaRedis(t *testing.T) {
 func TestSurvivesRedisDisconnect(t *testing.T) {
 	msgChan := make(chan []byte)
 	go pullMessage(msgChan, "", "baz")
-	rds := redis.New()
-	err := rds.Connect(REDISHOST, REDISPORT)
-	if err != nil {
-		t.Fatalf("Failed to connect to redis: %s", err.Error())
-	}
 
 	var clientsKilled int
-	rds.Command(&clientsKilled, "CLIENT", "KILL", "SKIPME", "yes")
+	doredis("CLIENT", "KILL", "SKIPME", "yes")
 
 	t.Logf("Killed %d clients", clientsKilled)
 
 	// Wait for incus to try to reconnect
 	time.Sleep(time.Second)
 
-	go sendCommandRedis("Incus", `{"command":{"command":"message","user":"baz"},"message":{"event":"bazbaz","data":{},"time":1}}`)
+	go doredis("PUBLISH", "Incus", `{"command":{"command":"message","user":"baz"},"message":{"event":"bazbaz","data":{},"time":1}}`)
 
 	select {
 	case msg, ok := <-msgChan:
