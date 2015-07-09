@@ -177,14 +177,13 @@ func (this *Server) ListenFromRedis() {
 		return
 	}
 
-	subReciever := make(chan []string, 10000)
-	queueReciever := make(chan string, 10000)
+	subReciever := make(chan []byte, 10000)
+	queueReciever := make(chan []byte, 10000)
 
-	subConsumer, err := this.Store.redis.Subscribe(subReciever, this.Config.Get("redis_message_channel"))
+	_, err := this.Store.redis.Subscribe(subReciever, this.Config.Get("redis_message_channel"))
 	if err != nil {
 		log.Fatal("Couldn't subscribe to redis channel")
 	}
-	defer subConsumer.Quit()
 
 	err = this.Store.redis.Poll(queueReciever, this.Config.Get("redis_message_queue"))
 	if err != nil {
@@ -195,16 +194,16 @@ func (this *Server) ListenFromRedis() {
 		log.Println("LISENING FOR REDIS MESSAGE")
 	}
 
-	var subMessage []string
-	var pollMessage string
+	var subMessage []byte
+	var pollMessage []byte
 	for {
 		var cmd = new(CommandMsg)
 
 		select {
 		case subMessage = <-subReciever:
-			err = json.Unmarshal([]byte(subMessage[2]), cmd)
+			err = json.Unmarshal(subMessage, cmd)
 		case pollMessage = <-queueReciever:
-			err = json.Unmarshal([]byte(pollMessage), cmd)
+			err = json.Unmarshal(pollMessage, cmd)
 		}
 
 		if err != nil {

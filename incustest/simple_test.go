@@ -75,6 +75,7 @@ func sendCommandLP(command, fromUser string) {
 func sendCommandRedis(channel, command string) {
 	go func() {
 		rds := redis.New()
+		defer rds.Close()
 		err := rds.Connect(REDISHOST, REDISPORT)
 		if err != nil {
 			log.Fatalf("Failed to connect to redis: %s", err.Error())
@@ -88,8 +89,8 @@ func sendCommandRedis(channel, command string) {
 
 func TestReceivingMessageFromLongpollViaLongpoll(t *testing.T) {
 	msgChan := make(chan []byte)
-	go pullMessage(msgChan, "", "userFoo")
-	go sendCommandLP(`{"command":{"command":"message","user":"userFoo"},"message":{"event":"foobar","data":{},"time":1}}`, "bazUser")
+	go pullMessage(msgChan, "", "foo")
+	go sendCommandLP(`{"command":{"command":"message","user":"foo"},"message":{"event":"foobar","data":{},"time":1}}`, "baz")
 	select {
 	case msgBytes, ok := <-msgChan:
 		if !ok {
@@ -113,8 +114,8 @@ func TestReceivingMessageFromLongpollViaLongpoll(t *testing.T) {
 
 func TestReceivingMessageFromLongpollViaRedis(t *testing.T) {
 	msgChan := make(chan []byte)
-	go pullMessage(msgChan, "", "userFoo")
-	go sendCommandRedis("Incus", `{"command":{"command":"message","user":"userFoo"},"message":{"event":"foobar","data":{},"time":1}}`)
+	go pullMessage(msgChan, "", "bar")
+	go sendCommandRedis("Incus", `{"command":{"command":"message","user":"bar"},"message":{"event":"foobar","data":{},"time":1}}`)
 	select {
 	case msgBytes, ok := <-msgChan:
 		if !ok {
@@ -138,7 +139,7 @@ func TestReceivingMessageFromLongpollViaRedis(t *testing.T) {
 
 func TestSurvivesRedisDisconnect(t *testing.T) {
 	msgChan := make(chan []byte)
-	go pullMessage(msgChan, "", "userFoo")
+	go pullMessage(msgChan, "", "baz")
 	rds := redis.New()
 	err := rds.Connect(REDISHOST, REDISPORT)
 	if err != nil {
@@ -146,21 +147,21 @@ func TestSurvivesRedisDisconnect(t *testing.T) {
 	}
 
 	var clientsKilled int
-	rds.Command(&clientsKilled, "CLIENT", "KILL", "TYPE", "pubsub")
+	rds.Command(&clientsKilled, "CLIENT", "KILL", "SKIPME", "yes")
 
-	t.Logf("Killed %d pubsub clients", clientsKilled)
+	t.Logf("Killed %d clients", clientsKilled)
 
 	// Wait for incus to try to reconnect
 	time.Sleep(time.Second)
 
-	go sendCommandRedis("Incus", `{"command":{"command":"message","user":"userFoo"},"message":{"event":"foobar","data":{},"time":1}}`)
+	go sendCommandRedis("Incus", `{"command":{"command":"message","user":"baz"},"message":{"event":"bazbaz","data":{},"time":1}}`)
 
 	select {
-	case _, ok := <-msgChan:
+	case msg, ok := <-msgChan:
 		if !ok {
 			t.Fatalf("Channel unexpectedly closed!")
 		}
-		t.Logf("Incus successfullly reconnected!")
+		t.Logf("Incus successfullly reconnected and sent %s!", msg)
 	case <-time.After(20 * time.Second):
 		t.Fatalf("Timed out waiting for message")
 	}
@@ -169,6 +170,6 @@ func TestSurvivesRedisDisconnect(t *testing.T) {
 // Sends b.N self-messages via longpoll
 func BenchmarkLongpollSending(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		sendCommandLP(`{"command":{"command":"message","user":"userFoo"},"message":{"event":"foobar","data":{},"time":1}}`, "userFoo")
+		sendCommandLP(`{"command":{"command":"message","user":"fooz"},"message":{"event":"foobar","data":{},"time":1}}`, "fooz")
 	}
 }

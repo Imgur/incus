@@ -19,7 +19,7 @@ func NewStore(Config *Configuration) *Storage {
 
 	if Config.GetBool("redis_enabled") {
 		redis_host := Config.Get("redis_port_6379_tcp_addr")
-		redis_port := uint(Config.GetInt("redis_port_6379_tcp_port"))
+		redis_port := Config.GetInt("redis_port_6379_tcp_port")
 
 		redisStore = newRedisStore(redis_host, redis_port)
 		store_type = "redis"
