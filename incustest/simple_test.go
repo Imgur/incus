@@ -106,7 +106,7 @@ func TestReceivingMessageFromLongpollViaLongpoll(t *testing.T) {
 			t.Fatalf("Expected event to be 'foobar', instead %s", msg.Event)
 		}
 		return
-	case <-time.After(300 * time.Second):
+	case <-time.After(20 * time.Second):
 		t.Fatalf("Timed out waiting for message")
 	}
 }
@@ -131,7 +131,37 @@ func TestReceivingMessageFromLongpollViaRedis(t *testing.T) {
 			t.Fatalf("Expected event to be 'foobar', instead %s", msg.Event)
 		}
 		return
-	case <-time.After(300 * time.Second):
+	case <-time.After(20 * time.Second):
+		t.Fatalf("Timed out waiting for message")
+	}
+}
+
+func TestSurvivesRedisDisconnect(t *testing.T) {
+	msgChan := make(chan []byte)
+	go pullMessage(msgChan, "", "userFoo")
+	rds := redis.New()
+	err := rds.Connect(REDISHOST, REDISPORT)
+	if err != nil {
+		t.Fatalf("Failed to connect to redis: %s", err.Error())
+	}
+
+	var clientsKilled int
+	rds.Command(&clientsKilled, "CLIENT", "KILL", "TYPE", "pubsub")
+
+	t.Logf("Killed %d pubsub clients", clientsKilled)
+
+	// Wait for incus to try to reconnect
+	time.Sleep(time.Second)
+
+	go sendCommandRedis("Incus", `{"command":{"command":"message","user":"userFoo"},"message":{"event":"foobar","data":{},"time":1}}`)
+
+	select {
+	case _, ok := <-msgChan:
+		if !ok {
+			t.Fatalf("Channel unexpectedly closed!")
+		}
+		t.Logf("Incus successfullly reconnected!")
+	case <-time.After(20 * time.Second):
 		t.Fatalf("Timed out waiting for message")
 	}
 }
