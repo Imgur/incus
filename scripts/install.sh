@@ -1,11 +1,11 @@
 
-cp initd.sh /etc/init.d/incus
+cp scripts/initd.sh /etc/init.d/incus
 
 if [ ! -d "/etc/incus" ]; then
     mkdir /etc/incus
 fi
 cp incus.conf /etc/incus/incus.conf
-cp incus /usr/sbin/incus
+cp `which incus` /usr/sbin/incus
 
 touch /var/log/incus.log
 

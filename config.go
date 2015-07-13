@@ -1,4 +1,4 @@
-package main
+package incus
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ type Configuration struct {
 	vars map[string]string
 }
 
-func initConfig() Configuration {
+func NewConfig() Configuration {
 	mymap := make(map[string]string)
 
 	ConfigOption(mymap, "CLIENT_BROADCASTS", "true")

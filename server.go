@@ -1,4 +1,4 @@
-package main
+package incus
 
 import (
 	"crypto/md5"
@@ -26,7 +26,7 @@ type Server struct {
 	timeout time.Duration
 }
 
-func createServer(conf *Configuration, store *Storage) *Server {
+func NewServer(conf *Configuration, store *Storage) *Server {
 	hash := md5.New()
 	io.WriteString(hash, time.Now().String())
 	id := string(hash.Sum(nil))
@@ -51,7 +51,7 @@ func createServer(conf *Configuration, store *Storage) *Server {
 	}
 }
 
-func (this *Server) initSocketListener() {
+func (this *Server) ListenFromSockets() {
 	Connect := func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed", 405)
@@ -112,7 +112,7 @@ func (this *Server) initSocketListener() {
 	http.HandleFunc("/socket", Connect)
 }
 
-func (this *Server) initLongPollListener() {
+func (this *Server) ListenFromLongpoll() {
 	LpConnect := func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			r.Body.Close()
@@ -172,19 +172,18 @@ func (this *Server) initLongPollListener() {
 	http.HandleFunc("/lp", LpConnect)
 }
 
-func (this *Server) initAppListener() {
+func (this *Server) ListenFromRedis() {
 	if !this.Config.GetBool("redis_enabled") {
 		return
 	}
 
-	subReciever := make(chan []string, 10000)
-	queueReciever := make(chan string, 10000)
+	subReciever := make(chan []byte, 10000)
+	queueReciever := make(chan []byte, 10000)
 
-	subConsumer, err := this.Store.redis.Subscribe(subReciever, this.Config.Get("redis_message_channel"))
+	_, err := this.Store.redis.Subscribe(subReciever, this.Config.Get("redis_message_channel"))
 	if err != nil {
 		log.Fatal("Couldn't subscribe to redis channel")
 	}
-	defer subConsumer.Quit()
 
 	err = this.Store.redis.Poll(queueReciever, this.Config.Get("redis_message_queue"))
 	if err != nil {
@@ -195,29 +194,28 @@ func (this *Server) initAppListener() {
 		log.Println("LISENING FOR REDIS MESSAGE")
 	}
 
-	var subMessage []string
-	var pollMessage string
+	var subMessage []byte
+	var pollMessage []byte
 	for {
 		var cmd = new(CommandMsg)
 
 		select {
 		case subMessage = <-subReciever:
-			err = json.Unmarshal([]byte(subMessage[2]), cmd)
+			err = json.Unmarshal(subMessage, cmd)
 		case pollMessage = <-queueReciever:
-			err = json.Unmarshal([]byte(pollMessage), cmd)
+			err = json.Unmarshal(pollMessage, cmd)
 		}
 
 		if err != nil {
-			if DEBUG {
-				log.Printf("Error decoding JSON: %s", err.Error())
-			}
+			log.Printf("Error decoding JSON: %s", err.Error())
+			this.Stats.LogInvalidJSON()
 		} else {
 			go cmd.FromRedis(this)
 		}
 	}
 }
 
-func (this *Server) initPingListener() {
+func (this *Server) ListenForHTTPPings() {
 	pingHandler := func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "OK")
 	}
@@ -225,10 +223,10 @@ func (this *Server) initPingListener() {
 	http.HandleFunc("/ping", pingHandler)
 }
 
-func (this *Server) sendHeartbeats() {
+func (this *Server) SendHeartbeatsPeriodically(period time.Duration) {
 
 	for {
-		time.Sleep(20 * time.Second)
+		time.Sleep(period)
 
 		clients := this.Store.Clients()
 
@@ -243,5 +241,19 @@ func (this *Server) sendHeartbeats() {
 
 			}
 		}
+	}
+}
+
+func (this *Server) RecordStats(period time.Duration) {
+	for {
+		this.Stats.LogClientCount(this.Store.memory.clientCount)
+		time.Sleep(period)
+	}
+}
+
+func (this *Server) LogConnectedClientsPeriodically(period time.Duration) {
+	for {
+		log.Printf("There are %d connected clients\n", this.Store.memory.clientCount)
+		time.Sleep(period)
 	}
 }

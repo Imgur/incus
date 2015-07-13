@@ -1,6 +1,9 @@
 Incus
 ===
 
+[![Build Status](https://travis-ci.org/Imgur/incus.svg?branch=master)](https://travis-ci.org/Imgur/incus)
+[![Coverage Status](https://coveralls.io/repos/Imgur/incus/badge.svg)](https://coveralls.io/r/Imgur/incus)
+
 Incus was created by Imgur.com to be a real-time messaging server that acts as the
 intermediary between a web app and a browser.
 

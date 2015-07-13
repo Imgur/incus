@@ -1,4 +1,4 @@
-package main
+package incus
 
 import (
 	"sync"
@@ -13,13 +13,13 @@ type Storage struct {
 	pageMu sync.RWMutex
 }
 
-func initStore(Config *Configuration) *Storage {
+func NewStore(Config *Configuration) *Storage {
 	store_type := "memory"
 	var redisStore *RedisStore
 
 	if Config.GetBool("redis_enabled") {
 		redis_host := Config.Get("redis_port_6379_tcp_addr")
-		redis_port := uint(Config.GetInt("redis_port_6379_tcp_port"))
+		redis_port := Config.GetInt("redis_port_6379_tcp_port")
 
 		redisStore = newRedisStore(redis_host, redis_port)
 		store_type = "redis"
