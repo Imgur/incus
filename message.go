@@ -127,7 +127,7 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	}
 
 	if !buildOkay {
-		log.Println("Device token not provided!")
+		log.Println("Build type not provided!")
 		return
 	}
 
