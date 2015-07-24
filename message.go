@@ -118,10 +118,15 @@ func (this *CommandMsg) sendMessage(server *Server) {
 }
 
 func (this *CommandMsg) pushiOS(server *Server) {
-	deviceToken, deviceToken_ok := this.Command["device_token"]
-	build, _ := this.Command["build"]
+	deviceToken, deviceTokenOkay := this.Command["device_token"]
+	build, buildOkay := this.Command["build"]
 
-	if !deviceToken_ok {
+	if !deviceTokenOkay {
+		log.Println("Device token not provided!")
+		return
+	}
+
+	if !buildOkay {
 		log.Println("Device token not provided!")
 		return
 	}
@@ -142,11 +147,7 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	pn.AddPayload(payload)
 	pn.Set("payload", msg)
 
-	var apns_url string
-	var client *apns.Client
-
-	client = apns.NewClient(server.Config.Get("apns_"+build+"_url"), server.Config.Get("apns_"+build+"_cert"), server.Config.Get("apns_"+build+"_private_key"))
-
+	client := apns.NewClient(server.Config.Get("apns_"+build+"_url"), server.Config.Get("apns_"+build+"_cert"), server.Config.Get("apns_"+build+"_private_key"))
 	resp := client.Send(pn)
 	alert, _ := pn.PayloadString()
 	server.Stats.LogAPNSPush()
