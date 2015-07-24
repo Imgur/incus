@@ -36,8 +36,8 @@ func NewConfig() Configuration {
 
 	if tlsEnabled == "true" {
 		ConfigOption(mymap, "TLS_PORT", "443")
-		ConfigOption(mymap, "CERT_FILE", "cert.pem")
-		ConfigOption(mymap, "KEY_FILE", "key.pem")
+		fileOption(ConfigOption(mymap, "CERT_FILE", "cert.pem"))
+		fileOption(ConfigOption(mymap, "KEY_FILE", "key.pem"))
 	}
 
 	_, apnsEnabled, _ := ConfigOption(mymap, "APNS_ENABLED", "false")
@@ -52,8 +52,11 @@ func NewConfig() Configuration {
 		fileOption(ConfigOption(mymap, "APNS_DEVELOPMENT_CERT", "myapnsappcert.pem"))
 		fileOption(ConfigOption(mymap, "APNS_DEVELOPMENT_PRIVATE_KEY", "myapnsappprivatekey.pem"))
 
-		ConfigOption(mymap, "APNS_PRODUCTION_URL", "gateway.push.apple.com:2195")
-		ConfigOption(mymap, "APNS_SANDBOX_URL", "gateway.sandbox.push.apple.com:2195")
+		ConfigOption(mymap, "APNS_STORE_URL", "gateway.push.apple.com:2195")
+		ConfigOption(mymap, "APNS_ENTERPRISE_URL", "gateway.push.apple.com:2195")
+		ConfigOption(mymap, "APNS_BETA_URL", "gateway.push.apple.com:2195")
+		ConfigOption(mymap, "APNS_DEVELOPMENT_URL", "gateway.sandbox.push.apple.com:2195")
+
 		ConfigOption(mymap, "IOS_PUSH_SOUND", "bingbong.aiff")
 	}
 
