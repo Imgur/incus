@@ -83,7 +83,7 @@ To send push notifications from your app, you need to push a json formated strin
 Android and iOS have slightly differnt schemas for sending push notifications.
 
 #### iOS:
-```
+```Javascript
 {
     'command' : {
         'command'      : 'pushios',
