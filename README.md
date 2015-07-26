@@ -165,6 +165,12 @@ cp incus.conf /etc/incus/incus.conf
 touch /var/log/incus.log
 ```
 
+Starting, Stopping, Restarting incus:
+```Shell
+sudo /etc/init.d/incus start
+sudo /etc/init.d/incus stop
+sudo /etc/init.d/incus restart
+```
 ## Configuration
 You can configure Incus by passing environment variables. Incus needs to be restarted after any variable change.
 
