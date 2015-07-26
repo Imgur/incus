@@ -166,7 +166,7 @@ touch /var/log/incus.log
 ## Configuration
 You can configure Incus by passing environment variables:
 
-CLIENT_BROADCASTS
+### CLIENT_BROADCASTS
 
 **true**
 > Clients may send messages to other clients
@@ -177,15 +177,14 @@ CLIENT_BROADCASTS
 Default: true
 
 _________
-
-LISTENING_PORT
+### LISTENING_PORT
 
 This value controls the port that Incus binds to (TCP).
 
 Default: 4000
 
 _________
-CONNECTION_TIMEOUT (unstable)
+### CONNECTION_TIMEOUT (unstable)
 
 This value controls how long TCP connections are held open for.
 
@@ -198,7 +197,7 @@ This value controls how long TCP connections are held open for.
 Default: 0
 
 _________
-LOG_LEVEL
+### LOG_LEVEL
 
 **debug**
 > All messages, including errors and debug are printed to standard output.
@@ -209,7 +208,7 @@ LOG_LEVEL
 Default: debug
 
 _________
-REDIS_PORT_6379_TCP_ADDR
+### REDIS_PORT_6379_TCP_ADDR
 
 This value controls the TCP address (or hostname) to connect to Redis.
 
@@ -218,7 +217,7 @@ Note: The environment variable name is always REDIS_PORT_6379_TCP_ADDR even if t
 Default: 127.0.0.1
 
 _________
-REDIS_PORT_6379_TCP_PORT
+### REDIS_PORT_6379_TCP_PORT
 
 This value controls the TCP port to connect to Redis.
 
@@ -227,14 +226,14 @@ Note: The environment variable name is always REDIS_PORT_6379_TCP_PORT even if t
 Default: 6379
 
 _________
-REDIS_MESSAGE_CHANNEL
+### REDIS_MESSAGE_CHANNEL
 
 This value controls the Redis PubSub channel to use.
 
 Default: Incus
 
 _________
-TLS_ENABLED
+### TLS_ENABLED
 
 This value controls whether the server will also listen on a TLS-enabled port.
 
@@ -247,21 +246,21 @@ This value controls whether the server will also listen on a TLS-enabled port.
 Default: false
 
 _________
-TLS_PORT
+### TLS_PORT
 
 This value controls what TCP port is exposed when using TLS
 
 Default: 443
 
 _________
-CERT_FILE
+### CERT_FILE
 
 This value controls what X.509 certificate is offered to clients connecting on the TLS port. The certificate is expected in PEM format. The value is a path name resolved relative to the working directory of Incus.
 
 Default: cert.pem
 
 _________
-KEY_FILE
+### KEY_FILE
 
 This value controls what X.509 private key is used for decrypting the TLS traffic. The key is expected in PEM format.
 
