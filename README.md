@@ -162,3 +162,96 @@ mkdir /etc/incus
 cp incus.conf /etc/incus/incus.conf
 touch /var/log/incus.log
 ```
+
+## Configuration
+You can configure Incus by passing environment variables:
+
+CLIENT_BROADCASTS
+___________
+**true**
+> Clients may send messages to other clients
+
+**false**
+> Clients may not send messages to other clients.
+
+Default: true
+
+LISTENING_PORT
+_________
+This value controls the port that Incus binds to (TCP).
+
+Default: 4000
+
+CONNECTION_TIMEOUT (unstable)
+_________
+This value controls how long TCP connections are held open for.
+
+**0**
+> Connections are held open forever.
+
+**anything else**
+> Connections are held open for this many seconds.
+
+Default: 0
+
+LOG_LEVEL
+_________
+**debug**
+> All messages, including errors and debug are printed to standard output.
+
+**error**
+> Only errors are printed to standard output.
+
+Default: debug
+
+REDIS_PORT_6379_TCP_ADDR
+_________
+This value controls the TCP address (or hostname) to connect to Redis.
+
+Note: The environment variable name is always REDIS_PORT_6379_TCP_ADDR even if the port is not 6379.
+
+Default: 127.0.0.1
+
+REDIS_PORT_6379_TCP_PORT
+_________
+This value controls the TCP port to connect to Redis.
+
+Note: The environment variable name is always REDIS_PORT_6379_TCP_PORT even if the port is not 6379.
+
+Default: 6379
+
+REDIS_MESSAGE_CHANNEL
+_________
+This value controls the Redis PubSub channel to use.
+
+Default: Incus
+
+TLS_ENABLED
+_________
+This value controls whether the server will also listen on a TLS-enabled port.
+
+**false**
+> TLS is disabled, so the server will only listen over its insecure port.
+
+**true**
+> TLS is enabled, so the socket will listen over both its insecure port and its TLS-enabled secure port.
+
+Default: false
+
+TLS_PORT
+_________
+This value controls what TCP port is exposed when using TLS
+
+Default: 443
+
+CERT_FILE
+__________
+This value controls what X.509 certificate is offered to clients connecting on the TLS port. The certificate is expected in PEM format. The value is a path name resolved relative to the working directory of Incus.
+
+Default: cert.pem
+
+KEY_FILE
+___________
+This value controls what X.509 private key is used for decrypting the TLS traffic. The key is expected in PEM format.
+
+Default: key.pem
