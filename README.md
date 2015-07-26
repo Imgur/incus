@@ -166,7 +166,7 @@ touch /var/log/incus.log
 ## Configuration
 You can configure Incus by passing environment variables:
 
-### CLIENT_BROADCASTS
+#### CLIENT_BROADCASTS
 
 **true**
 > Clients may send messages to other clients
@@ -177,7 +177,7 @@ You can configure Incus by passing environment variables:
 Default: true
 
 _________
-### LISTENING_PORT
+#### LISTENING_PORT
 
 This value controls the port that Incus binds to (TCP).
 
@@ -197,7 +197,7 @@ This value controls how long TCP connections are held open for.
 Default: 0
 
 _________
-### LOG_LEVEL
+#### LOG_LEVEL
 
 **debug**
 > All messages, including errors and debug are printed to standard output.
@@ -208,7 +208,7 @@ _________
 Default: debug
 
 _________
-### REDIS_PORT_6379_TCP_ADDR
+#### REDIS_PORT_6379_TCP_ADDR
 
 This value controls the TCP address (or hostname) to connect to Redis.
 
@@ -217,7 +217,7 @@ Note: The environment variable name is always REDIS_PORT_6379_TCP_ADDR even if t
 Default: 127.0.0.1
 
 _________
-### REDIS_PORT_6379_TCP_PORT
+#### REDIS_PORT_6379_TCP_PORT
 
 This value controls the TCP port to connect to Redis.
 
@@ -226,14 +226,14 @@ Note: The environment variable name is always REDIS_PORT_6379_TCP_PORT even if t
 Default: 6379
 
 _________
-### REDIS_MESSAGE_CHANNEL
+#### REDIS_MESSAGE_CHANNEL
 
 This value controls the Redis PubSub channel to use.
 
 Default: Incus
 
 _________
-### TLS_ENABLED
+#### TLS_ENABLED
 
 This value controls whether the server will also listen on a TLS-enabled port.
 
@@ -246,22 +246,95 @@ This value controls whether the server will also listen on a TLS-enabled port.
 Default: false
 
 _________
-### TLS_PORT
+#### TLS_PORT
 
 This value controls what TCP port is exposed when using TLS
 
 Default: 443
 
 _________
-### CERT_FILE
+#### CERT_FILE
 
 This value controls what X.509 certificate is offered to clients connecting on the TLS port. The certificate is expected in PEM format. The value is a path name resolved relative to the working directory of Incus.
 
 Default: cert.pem
 
 _________
-### KEY_FILE
+#### KEY_FILE
 
 This value controls what X.509 private key is used for decrypting the TLS traffic. The key is expected in PEM format.
 
 Default: key.pem
+
+_________
+#### APNS_ENABLED
+
+This value controls whether the server will listen for and send iOS push notifications
+
+**false**
+> APSN is disabled, the server will not listen for iOS push notifications
+
+**true**
+> APNS is enabled, the server will listen for and send iOS push notifications
+
+Default: false
+
+_________
+#### APNS_[BUILD]_CERT
+Where [BUILD] is one of: DEVELOPMENT, STORE, ENTERPRISE, or BETA
+
+This value controls what APNS granted cert the server will use when calling the APNS API. Each build environment has its own instance of this configuration variable.
+
+Default: myapnsappcert.pem
+
+_________
+#### APNS_[BUILD]_PRIVATE_KEY
+Where [BUILD] is one of: DEVELOPMENT, STORE, ENTERPRISE, or BETA
+
+This value controls what APNS granted private key the server will use when calling the APNS API. Each build environment has its own instance of this configuration variable.
+
+Default: myapnsappprivatekey.pem
+
+_________
+#### APNS_[BUILD]_URL
+Where [BUILD] is one of: DEVELOPMENT, STORE, ENTERPRISE, or BETA
+
+This value controls what APNS url is used when calling the APNS API. Each build environment has its own instance of this configuration variable.
+
+Default: gateway.push.apple.com:2195
+
+APNS_DEVELOPMENT_URL defaults to gateway.sandbox.push.apple.com:2195
+
+_________
+#### IOS_PUSH_SOUND
+
+This value controls what sound plays on push notification receive.
+
+Default: bingbong.aiff
+
+_________
+#### GCM_ENABLED
+
+This value controls whether the server will listen for and send Android push notifications
+
+**false**
+> GCM is disabled, the server will not listen for Android push notifications
+
+**true**
+> GCM is enabled, the server will listen for and send Android push notifications
+
+Default: false
+
+_________
+#### GCM_API_KEY
+
+This is the GCM granted api key used for calling the GCM API.
+
+Default: foobar
+
+_________
+#### ANDROID_ERROR_QUEUE
+
+This value controls where Android push errors are stored for later retrieval.
+
+Default: Incus_Android_Error_Queue
