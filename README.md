@@ -73,7 +73,7 @@ To send events to Incus from your webapp you need to publish a json formated str
 the command is used to route the message to the correct user.
 * if user and page are both unset the message object will be sent to all users
 * if both user and page are set the message object will be sent to that user on that page
-* if just user is set, the message object will be sent to all sockets that user has connected
+* if just user is set, the message object will be sent to all sockets owned by the user identified by UID
 * if just page is set, the message object will be sent to all sockets whose page matches the page identifier
 
 
