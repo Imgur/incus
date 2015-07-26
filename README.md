@@ -59,7 +59,7 @@ To send events to Incus from your webapp you need to publish a json formated str
 {
     'command' : {
         'command' : string (message|setpage),
-        'user'    : (optional) string -- UID,
+        'user'    : (optional) string -- Unique User ID,
         'page'    : (optional) string -- page identifier
     },
     'message' : {
