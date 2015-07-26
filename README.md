@@ -53,7 +53,7 @@ $('#button').on('click', function() {
 
 UID is a unique identifier for the user. It can be anywhere from an auto incremented ID to something more private such as a session id or OAuth token.
 
-To send events to Incus from your webapp you need to publish a json formated string to a **Redis pub/sub channel** that Incus is listening on. This channel key can be donfigured but defaults to `Incus`. The json format is as follows:
+To send events to Incus from your webapp you need to publish a json formated string to a **Redis pub/sub channel** that Incus is listening on. This channel key can be configured but defaults to `Incus`. The json format is as follows:
 
 ```Javascript
 {
