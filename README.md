@@ -10,7 +10,7 @@ middleware for distributing messages via websockets, long polling, and push noti
 * Long Poll fall back
 * iOS push notifications support through APNS
 * Android push notifications support through GCM
-* Routing messages to spefific phone, authenticated user, or webpage url
+* Routing messages to specific phone, authenticated user, or webpage url
 * Configurable option for allowing users to send messages to other users
 * Redis pub/sub and Redis List support for sending messages from an application
 * SSL support
