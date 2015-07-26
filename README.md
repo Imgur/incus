@@ -149,11 +149,13 @@ Install GO: http://golang.org/doc/install
 Clone the repo:
 ```Shell
 mkdir $GOPATH/src/github.com/Imgur/
+cd $GOPATH/src/github.com/Imgur/
 git clone git@github.com:Imgur/incus.git
 ```
 
 To Install:
 ```Shell
+cd $GOPATH/src/github.com/Imgur/incus
 go get -v ./...
 go install -v ./incus
 cp $GOPATH/bin/incus /usr/sbin/incus
