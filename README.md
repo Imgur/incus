@@ -124,7 +124,7 @@ Multiple registration ids can be listed in the same command
 
 You should follow APNS' guidlines on failed push attempts, they require querying their feedback service daily to find bad device tokens. See for more details: https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/CommunicatingWIthAPS.html
 
-The GCM service doesn't offer a feedback service, so when a push fails incus will add all relevant information to an error list in Redis (defaults to `Incus_Android_Error_Queue`). This should be used to remove bad registration ids from your app. 
+The GCM service doesn't offer a feedback service. When a push fails, incus will add all relevant information to an error list in Redis (defaults to `Incus_Android_Error_Queue`). This should be used to remove bad registration ids from your app. 
 
 ## Installation
 ### Method 1: Docker
