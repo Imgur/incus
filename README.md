@@ -184,7 +184,7 @@ This value controls the port that Incus binds to (TCP).
 Default: 4000
 
 _________
-### CONNECTION_TIMEOUT (unstable)
+#### CONNECTION_TIMEOUT (unstable)
 
 This value controls how long TCP connections are held open for.
 
