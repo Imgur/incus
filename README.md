@@ -166,7 +166,7 @@ touch /var/log/incus.log
 ```
 
 ## Configuration
-You can configure Incus by passing environment variables:
+You can configure Incus by passing environment variables. Incus needs to be restarted after any variable change.
 
 #### CLIENT_BROADCASTS
 
