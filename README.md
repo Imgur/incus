@@ -51,7 +51,7 @@ $('#button').on('click', function() {
 
 ### Application to a web browser
 
-UID is a unique identifier for the user. It can be anywhere from an auto incremented ID to something more private such as a session id or OAuth token.
+UID is a unique identifier for the user. It can be anywhere from an auto incremented ID to something more private such as a session id or OAuth token. If messages to users should be private from other users, then you should consider the UID a shared secret between the user and the server.
 
 To send events to Incus from your webapp you need to publish a json formated string to a **Redis pub/sub channel** that Incus is listening on. This channel key can be configured but defaults to `Incus`. The json format is as follows:
 
@@ -80,7 +80,7 @@ the command is used to route the message to the correct user.
 ### Push notifications 
 To send push notifications from your app, you need to push a json formated string to a **Redis list**. The list key is configurable but defaults to `Incus_Queue`
 
-Android and iOS have slightly differnt schemas for sending push notifications.
+Android and iOS have slightly different schemas for sending push notifications.
 
 #### iOS:
 ```Javascript
@@ -139,8 +139,8 @@ docker run -d --name incusredis redis
 Start Incus:
 
 ```Shell
-docker run -d --link incusredis:redis --name incus \
-        -p 4000:4000 jwgur/incus 
+docker run -d --link incusredis:redis  --name incus \
+        -e REDIS_ENABLED=true -p 4000:4000 jwgur/incus 
 ```
 
 ### Method 2: Source
