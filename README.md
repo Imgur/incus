@@ -3,7 +3,7 @@ Incus [![Build Status](https://travis-ci.org/Imgur/incus.svg?branch=master)](htt
 
 ![incus](http://i.imgur.com/7ZgRrA5.png)
 
-middleware for distributing messages via websockets, long polling, and push notifications
+Middleware for distributing messages via websockets, long polling, and push notifications
 
 ## Features
 * Websocket authentication and management
