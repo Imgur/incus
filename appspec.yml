@@ -5,7 +5,7 @@ files:
     destination: /usr/sbin/incus
   - source: scripts/initd.sh
     destination: /etc/init.d/incus
-rmissions:
+permissions:
   - object: /usr/sbin/incus
     owner: incus
     group: incus
