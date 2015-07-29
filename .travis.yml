@@ -4,7 +4,8 @@ services:
 go:
 - 1.4
 install: 
-- sudo pip install awscli
+- pip install --user awscli
+- export PATH=$PATH:~/.local/bin
 script:
 - ./scripts/build.sh
 - ./scripts/test.sh
