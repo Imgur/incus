@@ -29,6 +29,9 @@ start() {
   # see if running
   local pids=$(pidof $prog)
 
+  source /etc/incus/incus.conf
+  export GOTRACEBACK=1
+
   if [ -n "$pids" ]; then
     echo "$prog (pid $pids) is already running"
     return 0

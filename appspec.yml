@@ -1,0 +1,30 @@
+version: 0.0
+os: linux
+files:
+  - source: bin/incus
+    destination: /usr/sbin/incus
+  - source: scripts/initd.sh
+    destination: /etc/init.d/incus
+permissions:
+  - object: /usr/sbin/incus
+    owner: incus
+    group: incus
+    mode: 555
+  - object: /etc/init.d/incus
+    owner: root
+    group: root
+    mode: 755
+hooks:
+  ApplicationStop:
+    - location: scripts/codedeploy/stop.sh
+      timeout: 60
+      runas: root
+  ApplicationStart:
+    - location: scripts/codedeploy/start.sh
+      timeout: 60
+      runas: root
+  ValidateService:
+    - location: scripts/codedeploy/check.sh
+      timeout: 60
+      runas: root
+

@@ -1,12 +1,23 @@
 language: go
 services:
-    - redis-server
+- redis-server
 go:
-  - 1.4
-install: ./scripts/build-setup.sh
-script: 
-    - ./scripts/build-build.sh
-    - ./scripts/test.sh
+- 1.4
+install: sleep 0 # Travis does go get -t -v- ./... which we don't want.
+script:
+- ./scripts/build.sh
+- ./scripts/test.sh
 after_script:
-    - go test -v -covermode=count -coverprofile=coverage.out .
-    - goveralls -coverprofile=coverage.out -service travis-ci -repotoken $COVERALLS_TOKEN
+- go test -v -covermode=count -coverprofile=coverage.out .
+- goveralls -coverprofile=coverage.out -service travis-ci -repotoken $COVERALLS_TOKEN
+deploy:
+  provider: codedeploy
+  access_key_id: AKIAI5ZPHLFDRBYAXK5A
+  secret_access_key:
+    secure: BEqHywNBj6F9jQd+3E+rYfWUi7CujzDf+FMqZ5JcDJPrMA9Lk97wzNeBItuvSmqPpRvlRstXqrpF7n8JJpE9d5Q+c0gJWQ0C10NFY1v9EpUWPhN+aHsTR+DeLO/YALc/QQq7fqLUFQlVD5Ew+fGVztgsxkS3/t6gfremqz+cxz0=
+  bucket: imgur-incus
+  key: $GOPATH/incus.tar
+  application: Incus
+  deployment_group: Production
+  on:
+    branch: master
