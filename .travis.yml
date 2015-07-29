@@ -4,7 +4,7 @@ services:
 go:
 - 1.4
 install: 
-- pip install awscli
+- sudo pip install awscli
 script:
 - ./scripts/build.sh
 - ./scripts/test.sh
