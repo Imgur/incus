@@ -57,15 +57,15 @@ To send events to Incus from your webapp you need to publish a json formated str
 
 ```Javascript
 {
-    'command' : {
-        'command' : string (message|setpage),
-        'user'    : (optional) string -- Unique User ID,
-        'page'    : (optional) string -- page identifier
+    "command" : {
+        "command" : string (message|setpage),
+        "user"    : (optional) string -- Unique User ID,
+        "page"    : (optional) string -- page identifier
     },
-    'message' : {
-        'event' : string,
-        'data'  : object,
-        'time'  : int
+    "message" : {
+        "event" : string,
+        "data"  : object,
+        "time"  : int
     }
 }
 ```
@@ -85,19 +85,20 @@ Android and iOS have slightly different schemas for sending push notifications.
 #### iOS:
 ```Javascript
 {
-    'command' : {
-        'command'      : 'pushios',
-        'device_token' : string -- device token registered with APNS,
-        'build'        : string -- build environment (store|beta|enterprise|development)
+    "command" : {
+        "command"      : "push",
+        "push_type"    : "ios",
+        "device_token" : string -- device token registered with APNS,
+        "build"        : string -- build environment (store|beta|enterprise|development)
     },
-    'message' : {
-        'event' : string,
-        'data'  : {
-            'badge_count': optional int,
-            'message_text': string,
+    "message" : {
+        "event" : string,
+        "data"  : {
+            "badge_count": optional int,
+            "message_text": string,
             ...,
         },
-        'time'  : int
+        "time"  : int
     }
 }
 ```
@@ -112,14 +113,15 @@ Multiple registration ids can be listed in the same command
 
 ```Javascript
 {
-    'command' : {
-        'command'          : 'pushandroid',
-        'registration_ids' : string -- one or more registration ids separated by commas
+    "command" : {
+        "command"          : "push",
+        "push_type"        : "android",
+        "registration_ids" : string -- one or more registration ids separated by commas
     },
-    'message' : {
-        'event' : string,
-        'data'  : object,
-        'time'  : int
+    "message" : {
+        "event" : string,
+        "data"  : object,
+        "time"  : int
     }
 }
 ```

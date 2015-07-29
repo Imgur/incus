@@ -152,7 +152,7 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	payload.Alert = msg.Data["message_text"]
 	badgeAmt, hasBadge := msg.Data["badge_count"]
 	if hasBadge {
-		payload.Badge = int(msg.Data["badge_count"].(float64))
+		payload.Badge = int(badgeAmt.(float64))
 	}
 
 	pn := apns.NewPushNotification()
@@ -160,7 +160,7 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	pn.AddPayload(payload)
 	pn.Set("payload", msg)
 
-	client := apns.NewClient(server.Config.Get("apns_"+build+"_url"), server.Config.Get("apns_"+build+"_cert"), server.Config.Get("apns_"+build+"_private_key"))
+	client := server.GetAPNSClient(build)
 	resp := client.Send(pn)
 	alert, _ := pn.PayloadString()
 	server.Stats.LogAPNSPush()

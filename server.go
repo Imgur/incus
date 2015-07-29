@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	apns "github.com/anachronistic/apns"
 	"github.com/gorilla/websocket"
 )
 
@@ -23,7 +24,8 @@ type Server struct {
 	Store  *Storage
 	Stats  RuntimeStats
 
-	timeout time.Duration
+	timeout      time.Duration
+	apnsProvider func(string) apns.APNSClient
 }
 
 func NewServer(conf *Configuration, store *Storage) *Server {
@@ -42,12 +44,17 @@ func NewServer(conf *Configuration, store *Storage) *Server {
 		runtimeStats = &DiscardStats{}
 	}
 
+	apnsProvider := func(build string) apns.APNSClient {
+		return apns.NewClient(conf.Get("apns_"+build+"_url"), conf.Get("apns_"+build+"_cert"), conf.Get("apns_"+build+"_private_key"))
+	}
+
 	return &Server{
-		ID:      id,
-		Config:  conf,
-		Store:   store,
-		timeout: timeout,
-		Stats:   runtimeStats,
+		ID:           id,
+		Config:       conf,
+		Store:        store,
+		timeout:      timeout,
+		Stats:        runtimeStats,
+		apnsProvider: apnsProvider,
 	}
 }
 
@@ -256,4 +263,8 @@ func (this *Server) LogConnectedClientsPeriodically(period time.Duration) {
 		log.Printf("There are %d connected clients\n", this.Store.memory.clientCount)
 		time.Sleep(period)
 	}
+}
+
+func (this *Server) GetAPNSClient(build string) apns.APNSClient {
+	return this.apnsProvider(build)
 }
