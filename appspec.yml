@@ -2,9 +2,9 @@ version: 0.0
 os: linux
 files:
   - source: bin/incus
-    destination: /usr/sbin/incus
+    destination: /usr/sbin
   - source: scripts/initd.sh
-    destination: /etc/init.d/incus
+    destination: /etc/init.d
 permissions:
   - object: /usr/sbin/incus
     owner: incus
