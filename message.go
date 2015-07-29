@@ -88,6 +88,15 @@ func (this *CommandMsg) FromRedis(server *Server) {
 		if server.Config.GetBool("gcm_enabled") {
 			this.pushAndroid(server)
 		}
+
+	case "push":
+		if strings.ToLower(this.Command["push_type"]) == "ios" {
+			this.pushiOS(server)
+		}
+
+		if strings.ToLower(this.Command["push_type"]) == "android" {
+			this.pushAndroid(server)
+		}
 	}
 }
 
@@ -138,9 +147,13 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	}
 
 	payload := apns.NewPayload()
-	payload.Alert = msg.Data["message_text"]
 	payload.Sound = server.Config.Get("ios_push_sound")
-	payload.Badge = int(msg.Data["badge_count"].(float64))
+
+	payload.Alert = msg.Data["message_text"]
+	badgeAmt, hasBadge := msg.Data["badge_count"]
+	if hasBadge {
+		payload.Badge = int(msg.Data["badge_count"].(float64))
+	}
 
 	pn := apns.NewPushNotification()
 	pn.DeviceToken = deviceToken
