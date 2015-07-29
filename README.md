@@ -87,20 +87,24 @@ Android and iOS have slightly different schemas for sending push notifications.
 {
     'command' : {
         'command'      : 'pushios',
-        'device_token' : string -- device token registered with APNS ,
+        'device_token' : string -- device token registered with APNS,
         'build'        : string -- build environment (store|beta|enterprise|development)
     },
     'message' : {
         'event' : string,
         'data'  : {
-            'badge_count': int,
-            ...,
+            'badge_count': optional int,
+            'message_text': string,
             ...,
         },
         'time'  : int
     }
 }
 ```
+
+Notes:
+
+  * At this time, dictionary APNS alerts are not supported.
 
 #### Android:
 
@@ -122,9 +126,9 @@ Multiple registration ids can be listed in the same command
 
 #### APNS and GCM errors
 
-You should follow APNS' guidlines on failed push attempts, they require querying their feedback service daily to find bad device tokens. See for more details: https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/CommunicatingWIthAPS.html
+Incus does **not** interact with the [APNS Feedback Service](https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/CommunicatingWIthAPS.html#//apple_ref/doc/uid/TP40008194-CH101-SW3). You should follow the APNS' guidelines on failed push attempts. They require querying their feedback service daily to find bad device tokens. 
 
-The GCM service doesn't offer a feedback service. When a push fails, incus will add all relevant information to an error list in Redis (defaults to `Incus_Android_Error_Queue`). This should be used to remove bad registration ids from your app. 
+The GCM service does not offer a feedback service. When a push fails, Incus will add all relevant information to an error list in Redis (defaults to `Incus_Android_Error_Queue`). This should be used to remove bad registration ids from your app. 
 
 ## Installation
 ### Method 1: Docker
