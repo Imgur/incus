@@ -7,9 +7,9 @@ files:
     destination: /etc/init.d
 permissions:
   - object: /usr/sbin/incus
-    owner: incus
-    group: incus
-    mode: 555
+    owner: root
+    group: root
+    mode: 755
   - object: /etc/init.d/incus
     owner: root
     group: root
