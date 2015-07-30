@@ -191,7 +191,7 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 	regIDs := strings.Split(registration_ids, ",")
 	gcmMessage := gcm.NewMessage(data, regIDs...)
 
-	sender := &gcm.Sender{ApiKey: server.Config.Get("gcm_api_key")}
+	sender := server.GetGCMClient()
 
 	server.Stats.LogGCMPush()
 	gcmResponse, gcmErr := sender.Send(gcmMessage, 2)
