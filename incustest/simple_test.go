@@ -90,6 +90,9 @@ func doredis(command string, args ...interface{}) {
 func TestReceivingMessageFromLongpollViaLongpoll(t *testing.T) {
 	msgChan := make(chan []byte)
 	go pullMessage(msgChan, "", "foo")
+	// Give it a little time to set up LP
+	time.Sleep(250 * time.Millisecond)
+
 	go sendCommandLP(`{"command":{"command":"message","user":"foo"},"message":{"event":"foobar","data":{},"time":1}}`, "baz")
 	select {
 	case msgBytes, ok := <-msgChan:
@@ -115,6 +118,9 @@ func TestReceivingMessageFromLongpollViaLongpoll(t *testing.T) {
 func TestReceivingMessageFromLongpollViaRedis(t *testing.T) {
 	msgChan := make(chan []byte)
 	go pullMessage(msgChan, "", "bar")
+	// Give it a little time to set up LP
+	time.Sleep(250 * time.Millisecond)
+
 	go doredis("PUBLISH", "Incus", `{"command":{"command":"message","user":"bar"},"message":{"event":"foobar","data":{},"time":1}}`)
 	select {
 	case msgBytes, ok := <-msgChan:
@@ -140,6 +146,9 @@ func TestReceivingMessageFromLongpollViaRedis(t *testing.T) {
 func TestSurvivesRedisDisconnect(t *testing.T) {
 	msgChan := make(chan []byte)
 	go pullMessage(msgChan, "", "baz")
+
+	// Give it a little time to set up LP
+	time.Sleep(250 * time.Millisecond)
 
 	var clientsKilled int
 	doredis("CLIENT", "KILL", "SKIPME", "yes")
