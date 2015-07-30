@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/alexjlockwood/gcm"
 	apns "github.com/anachronistic/apns"
 	"github.com/gorilla/websocket"
 )
@@ -18,6 +19,10 @@ const (
 	pongWait  = 1 * time.Second
 )
 
+type GCMClient interface {
+	Send(*gcm.Message, int) (*gcm.Response, error)
+}
+
 type Server struct {
 	ID     string
 	Config *Configuration
@@ -26,6 +31,7 @@ type Server struct {
 
 	timeout      time.Duration
 	apnsProvider func(string) apns.APNSClient
+	gcmProvider  func() GCMClient
 }
 
 func NewServer(conf *Configuration, store *Storage) *Server {
@@ -48,6 +54,10 @@ func NewServer(conf *Configuration, store *Storage) *Server {
 		return apns.NewClient(conf.Get("apns_"+build+"_url"), conf.Get("apns_"+build+"_cert"), conf.Get("apns_"+build+"_private_key"))
 	}
 
+	gcmProvider := func() GCMClient {
+		return &gcm.Sender{ApiKey: conf.Get("gcm_api_key")}
+	}
+
 	return &Server{
 		ID:           id,
 		Config:       conf,
@@ -55,6 +65,7 @@ func NewServer(conf *Configuration, store *Storage) *Server {
 		timeout:      timeout,
 		Stats:        runtimeStats,
 		apnsProvider: apnsProvider,
+		gcmProvider:  gcmProvider,
 	}
 }
 
@@ -267,4 +278,8 @@ func (this *Server) LogConnectedClientsPeriodically(period time.Duration) {
 
 func (this *Server) GetAPNSClient(build string) apns.APNSClient {
 	return this.apnsProvider(build)
+}
+
+func (this *Server) GetGCMClient() GCMClient {
+	return this.gcmProvider()
 }
