@@ -14,8 +14,8 @@ import (
 
 var store *incus.Storage
 
-// inserted at compile time by -ldflags "-X main.builddate foo"
-var builddate string
+// Inserted at compile time by -ldflags "-X main.BUILD foo"
+var BUILD string
 
 func main() {
 	if os.Getenv("GOMAXPROCS") == "" {
@@ -34,7 +34,7 @@ func main() {
 
 	conf := incus.NewConfig()
 	initLogger(conf)
-	log.Printf("Incus built on %s", builddate)
+	log.Printf("Incus built on %s", BUILD)
 
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	InstallSignalHandlers(signals)
