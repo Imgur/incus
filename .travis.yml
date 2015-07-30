@@ -6,6 +6,7 @@ go:
 install: 
 - pip install --user awscli
 - export PATH=$PATH:~/.local/bin
+- ./scripts/prebuild.sh
 script:
 - ./scripts/build.sh
 - ./scripts/test.sh

@@ -14,6 +14,9 @@ import (
 
 var store *incus.Storage
 
+// Inserted at compile time by -ldflags "-X main.BUILD foo"
+var BUILD string
+
 func main() {
 	if os.Getenv("GOMAXPROCS") == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -31,6 +34,8 @@ func main() {
 
 	conf := incus.NewConfig()
 	initLogger(conf)
+	log.Printf("Incus built on %s", BUILD)
+
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	InstallSignalHandlers(signals)
 

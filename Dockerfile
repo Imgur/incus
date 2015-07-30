@@ -5,6 +5,6 @@ RUN /tmp/build-setup.sh
 ADD . /go/src/github.com/Imgur/incus
 WORKDIR /go/src/github.com/Imgur/incus
 
-RUN ./scripts/build-build.sh
+RUN ./scripts/build.sh
 
 CMD incus
