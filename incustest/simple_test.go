@@ -1,4 +1,4 @@
-package incustest
+package main
 
 import (
 	"encoding/json"
