@@ -116,20 +116,4 @@ func TestGCM(t *testing.T) {
 	if message.RegistrationIDs == nil || len(message.RegistrationIDs) != 2 {
 		t.Fatalf("Expected there to be two registration IDs, instead %+v in %+v", message.RegistrationIDs, message)
 	}
-
-	if message.RegistrationIDs[0] != "123456" {
-		t.Fatalf("Expected the first registration ID to be 123456, instead  %+v in %+v", message.RegistrationIDs[0], message)
-	}
-
-	if message.RegistrationIDs[1] != "654321" {
-		t.Fatalf("Expected the first registration ID to be 654321, instead  %+v in %+v", message.RegistrationIDs[1], message)
-	}
-
-	if message.Data["event"].(string) != "foobaz" {
-		t.Fatalf("Expected data[\"event\"] to be \"foobaz\", instead %+v in %+v", message.Data["event"].(string), message)
-	}
-
-	if message.DryRun == true {
-		t.Fatalf("Expected dry run to be false, instead %+v", message.DryRun)
-	}
 }
