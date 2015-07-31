@@ -10,7 +10,9 @@ import (
 
 func newTestRedisStore() *RedisStore {
 	port, _ := strconv.Atoi(os.Getenv("REDIS_PORT_6379_TCP_PORT"))
-	return newRedisStore(os.Getenv("REDIS_PORT_6379_TCP_ADDR"), port)
+	store := newRedisStore(os.Getenv("REDIS_PORT_6379_TCP_ADDR"), port)
+	store.presenceDuration = 1
+	return store
 }
 
 func TestMain(m *testing.M) {
@@ -190,7 +192,7 @@ func TestRCount(t *testing.T) {
 
 func TestUserPresence(t *testing.T) {
 	store := newTestRedisStore()
-	active, err := store.QueryIsUserActive("foobar", time.Now().Unix(), 1)
+	active, err := store.QueryIsUserActive("foobar", time.Now().Unix())
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
@@ -200,7 +202,7 @@ func TestUserPresence(t *testing.T) {
 
 	store.MarkActive("foobar", "sock1", time.Now().Unix())
 
-	active, err = store.QueryIsUserActive("foobar", time.Now().Unix(), 1)
+	active, err = store.QueryIsUserActive("foobar", time.Now().Unix())
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
@@ -208,9 +210,10 @@ func TestUserPresence(t *testing.T) {
 		t.Fatalf("Expected 'foobar' to be active")
 	}
 
+	// wait for the redis key to expire
 	time.Sleep(2 * time.Second)
 
-	active, err = store.QueryIsUserActive("foobar", time.Now().Unix(), 1)
+	active, err = store.QueryIsUserActive("foobar", time.Now().Unix())
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}

@@ -17,6 +17,7 @@ type RedisStore struct {
 	clientsKey        string
 	pageKey           string
 	presenceKeyPrefix string
+	presenceDuration  int64
 
 	server      string
 	port        int
@@ -37,6 +38,7 @@ func newRedisStore(redis_host string, redis_port int) *RedisStore {
 		clientsKey:        ClientsKey,
 		pageKey:           PageKey,
 		presenceKeyPrefix: PresenceKeyPrefix,
+		presenceDuration:  60,
 
 		server: redis_host,
 		port:   redis_port,
@@ -179,7 +181,13 @@ func (this *RedisStore) MarkActive(user, socket_id string, timestamp int64) {
 
 	userSortedSetKey := this.presenceKeyPrefix + ":" + user
 
-	conn.Do("ZADD", userSortedSetKey, timestamp, socket_id)
+	conn.Send("MULTI")
+	conn.Send("ZADD", userSortedSetKey, timestamp, socket_id)
+	conn.Send("EXPIRE", userSortedSetKey, timestamp+this.presenceDuration)
+	_, err = conn.Do("EXEC")
+	if err != nil {
+		log.Printf("Error marking user as active: %s", err.Error())
+	}
 }
 
 func (this *RedisStore) MarkInactive(user, socket_id string) {
@@ -194,7 +202,7 @@ func (this *RedisStore) MarkInactive(user, socket_id string) {
 	conn.Do("ZREM", userSortedSetKey, user)
 }
 
-func (this *RedisStore) QueryIsUserActive(user string, now_timestamp, active_seconds_ago int64) (bool, error) {
+func (this *RedisStore) QueryIsUserActive(user string, nowTimestamp int64) (bool, error) {
 	conn, err := this.GetConn()
 	if err != nil {
 		return false, err
@@ -203,7 +211,7 @@ func (this *RedisStore) QueryIsUserActive(user string, now_timestamp, active_sec
 
 	userSortedSetKey := this.presenceKeyPrefix + ":" + user
 
-	reply, err := conn.Do("ZRANGEBYSCORE", userSortedSetKey, now_timestamp-active_seconds_ago, now_timestamp)
+	reply, err := conn.Do("ZRANGEBYSCORE", userSortedSetKey, nowTimestamp-this.presenceDuration, nowTimestamp)
 
 	els := reply.([]interface{})
 
