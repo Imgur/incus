@@ -18,6 +18,8 @@ Middleware for distributing messages via websockets, long polling, and push noti
 
 ## Usage
 
+![diagram](http://i.imgur.com/dwAn1l0.png?1)
+
 ### incus.js
 Once incus is running you can include incus.js onto your site.
 Here's the basic usage of incus.js
