@@ -1,11 +1,30 @@
 package incus
 
 import (
+	"log"
+	"os"
+	"strconv"
 	"testing"
-	//"time"
-
-	//"github.com/gosexy/redis"
+	"time"
 )
+
+func newTestRedisStore() *RedisStore {
+	port, _ := strconv.Atoi(os.Getenv("REDIS_PORT_6379_TCP_PORT"))
+	return newRedisStore(os.Getenv("REDIS_PORT_6379_TCP_ADDR"), port)
+}
+
+func TestMain(m *testing.M) {
+	store := newTestRedisStore()
+	_, err := store.GetConn()
+
+	if err != nil {
+		addr, port := os.Getenv("REDIS_PORT_6379_TCP_ADDR"), os.Getenv("REDIS_PORT_6379_TCP_PORT")
+
+		log.Printf("Failed to connect to redis at %s:%s. Skipping redis tests.\n", addr, port)
+	} else {
+		os.Exit(m.Run())
+	}
+}
 
 //var redisStore = makeTestStore()
 
@@ -167,4 +186,35 @@ func TestRCount(t *testing.T) {
 	// 	t.Fatal("Clients test failed")
 	// }
 	return
+}
+
+func TestUserPresence(t *testing.T) {
+	store := newTestRedisStore()
+	active, err := store.QueryIsUserActive("foobar", time.Now().Unix(), 1)
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err.Error())
+	}
+	if active {
+		t.Fatalf("Expected 'foobar' to be inactive")
+	}
+
+	store.MarkActive("foobar", "sock1", time.Now().Unix())
+
+	active, err = store.QueryIsUserActive("foobar", time.Now().Unix(), 1)
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err.Error())
+	}
+	if !active {
+		t.Fatalf("Expected 'foobar' to be active")
+	}
+
+	time.Sleep(2 * time.Second)
+
+	active, err = store.QueryIsUserActive("foobar", time.Now().Unix(), 1)
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err.Error())
+	}
+	if active {
+		t.Fatalf("Expected 'foobar' to be inactive")
+	}
 }

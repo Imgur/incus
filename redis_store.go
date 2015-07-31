@@ -11,10 +11,12 @@ import (
 
 const ClientsKey = "SocketClients"
 const PageKey = "PageClients"
+const PresenceKeyPrefix = "ClientPresence"
 
 type RedisStore struct {
-	clientsKey string
-	pageKey    string
+	clientsKey        string
+	pageKey           string
+	presenceKeyPrefix string
 
 	server      string
 	port        int
@@ -32,8 +34,9 @@ type redisPool struct {
 func newRedisStore(redis_host string, redis_port int) *RedisStore {
 
 	return &RedisStore{
-		clientsKey: ClientsKey,
-		pageKey:    PageKey,
+		clientsKey:        ClientsKey,
+		pageKey:           PageKey,
+		presenceKeyPrefix: PresenceKeyPrefix,
 
 		server: redis_host,
 		port:   redis_port,
@@ -165,6 +168,46 @@ func (this *RedisStore) Poll(c chan []byte, queue string) error {
 	}()
 
 	return nil
+}
+
+func (this *RedisStore) MarkActive(user, socket_id string, timestamp int64) {
+	conn, err := this.GetConn()
+	if err != nil {
+		return
+	}
+	defer this.CloseConn(conn)
+
+	userSortedSetKey := this.presenceKeyPrefix + ":" + user
+
+	conn.Do("ZADD", userSortedSetKey, timestamp, socket_id)
+}
+
+func (this *RedisStore) MarkInactive(user, socket_id string) {
+	conn, err := this.GetConn()
+	if err != nil {
+		return
+	}
+	defer this.CloseConn(conn)
+
+	userSortedSetKey := this.presenceKeyPrefix + ":" + user
+
+	conn.Do("ZREM", userSortedSetKey, user)
+}
+
+func (this *RedisStore) QueryIsUserActive(user string, now_timestamp, active_seconds_ago int64) (bool, error) {
+	conn, err := this.GetConn()
+	if err != nil {
+		return false, err
+	}
+	defer this.CloseConn(conn)
+
+	userSortedSetKey := this.presenceKeyPrefix + ":" + user
+
+	reply, err := conn.Do("ZRANGEBYSCORE", userSortedSetKey, now_timestamp-active_seconds_ago, now_timestamp)
+
+	els := reply.([]interface{})
+
+	return len(els) > 0, nil
 }
 
 func (this *RedisStore) Publish(channel string, message string) {
