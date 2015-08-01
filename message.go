@@ -66,6 +66,7 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 			if DEBUG {
 				log.Printf("Ignoring presence command with no boolean presence")
 			}
+
 			return
 		}
 

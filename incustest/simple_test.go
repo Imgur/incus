@@ -46,10 +46,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func pullMessage(c chan []byte, page, user string) {
+func pullMessage(c chan []byte, page, user, command string) {
 	lpParams := url.Values{}
 	lpParams.Set("user", user)
 	lpParams.Set("page", page)
+	lpParams.Set("command", command)
 	resp, err := http.PostForm("http://"+INCUSHOST+"/lp", lpParams)
 	if err != nil {
 		log.Printf("Error POSTing: %s", err.Error())
@@ -73,23 +74,32 @@ func sendCommandLP(command, fromUser string) {
 	http.PostForm("http://"+INCUSHOST+"/lp", lpParams)
 }
 
-func doredis(command string, args ...interface{}) {
-	go func() {
+func doredis(command string, args ...interface{}) chan interface{} {
+	resultChan := make(chan interface{})
+
+	go func(resultChan chan interface{}) {
 		rds, err := redis.Dial("tcp", fmt.Sprintf("%s:%d", REDISHOST, REDISPORT))
 		if err != nil {
 			log.Fatalf("Failed to connect to redis: %s", err.Error())
 		}
 		defer rds.Close()
-		_, err = rds.Do(command, args...)
+		result, err := rds.Do(command, args...)
 		if err != nil {
 			log.Fatalf("Failed to execute command: %s", err.Error())
 		}
-	}()
+
+		select {
+		case resultChan <- result:
+		default:
+		}
+	}(resultChan)
+
+	return resultChan
 }
 
 func TestReceivingMessageFromLongpollViaLongpoll(t *testing.T) {
 	msgChan := make(chan []byte)
-	go pullMessage(msgChan, "", "foo")
+	go pullMessage(msgChan, "", "foo", "")
 	// Give it a little time to set up LP
 	time.Sleep(250 * time.Millisecond)
 
@@ -117,7 +127,7 @@ func TestReceivingMessageFromLongpollViaLongpoll(t *testing.T) {
 
 func TestReceivingMessageFromLongpollViaRedis(t *testing.T) {
 	msgChan := make(chan []byte)
-	go pullMessage(msgChan, "", "bar")
+	go pullMessage(msgChan, "", "bar", "")
 	// Give it a little time to set up LP
 	time.Sleep(250 * time.Millisecond)
 
@@ -145,7 +155,7 @@ func TestReceivingMessageFromLongpollViaRedis(t *testing.T) {
 
 func TestSurvivesRedisDisconnect(t *testing.T) {
 	msgChan := make(chan []byte)
-	go pullMessage(msgChan, "", "baz")
+	go pullMessage(msgChan, "", "baz", "")
 
 	// Give it a little time to set up LP
 	time.Sleep(250 * time.Millisecond)
@@ -168,6 +178,23 @@ func TestSurvivesRedisDisconnect(t *testing.T) {
 		t.Logf("Incus successfullly reconnected and sent %s!", msg)
 	case <-time.After(20 * time.Second):
 		t.Fatalf("Timed out waiting for message")
+	}
+}
+
+func TestMarksPresent(t *testing.T) {
+	doredis("DEL", "ClientPresence:foo")
+
+	msgChan := make(chan []byte)
+	go pullMessage(msgChan, "/", "foo", `{"command":{"command":"setpresence"},"message":{"presence":true}}`)
+
+	// Give it a little time to set up LP
+	time.Sleep(250 * time.Millisecond)
+
+	cardchan := doredis("ZCARD", "ClientPresence:foo")
+	card := <-cardchan
+
+	if card.(int64) != 1 {
+		t.Fatalf("Expected cardinality of ClientPresence:foo to be 1, instead %d", card)
 	}
 }
 
