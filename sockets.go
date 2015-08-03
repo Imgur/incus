@@ -166,7 +166,7 @@ func (this *Socket) listenForWrites() {
 
 			var err error
 			if this.isWebsocket() {
-				this.ws.SetWriteDeadline(time.Now().Add(writeWait))
+				this.ws.SetWriteDeadline(time.Now().Add(WRITEWAIT))
 				err = this.ws.WriteJSON(message)
 			} else {
 				json_str, _ := json.Marshal(message)

@@ -23,7 +23,6 @@ func main() {
 	}
 
 	store = nil
-	signals := make(chan os.Signal, 1)
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -36,8 +35,7 @@ func main() {
 	initLogger(conf)
 	log.Printf("Incus built on %s", BUILD)
 
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-	InstallSignalHandlers(signals)
+	InstallSignalHandlers()
 
 	store = incus.NewStore(&conf)
 
@@ -75,11 +73,21 @@ func listenAndServeTLS(conf incus.Configuration) {
 	}
 }
 
-func InstallSignalHandlers(signals chan os.Signal) {
+func InstallSignalHandlers() {
 	go func() {
+		signals := make(chan os.Signal, 1)
+		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 		sig := <-signals
 		log.Printf("%v caught, incus is going down...", sig)
-		shutdown()
+		log.Printf("Waiting %d seconds for goroutines to shut down...", 5)
+
+		select {
+		case <-time.After(5 * time.Second):
+			shutdown()
+		case sig := <-signals:
+			log.Printf("%v caught again. Exiting immediately...", sig)
+			shutdown()
+		}
 	}()
 }
 
