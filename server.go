@@ -18,13 +18,13 @@ import (
 )
 
 const (
-	WRITEWAIT = 5 * time.Second
-	PONGWAIT  = 1 * time.Second
+	writeWait = 5 * time.Second
+	pongWait  = 1 * time.Second
 
 	// RFC 6455 Section 7
-	CLOSE_CODE_NORMAL           = 1000
-	CLOSE_CODE_GOING_AWAY       = 1001
-	CLOSE_CODE_UNEXPECTED_ERROR = 1011
+	closeCodeNormal          = 1000
+	closeCodeGoingAway       = 1001
+	closeCodeUnexpectedError = 1011
 )
 
 type GCMClient interface {
@@ -105,7 +105,7 @@ func (this *Server) ListenFromSockets() {
 
 		defer func() {
 			if !writtenCloseMessage {
-				closeMessage := websocket.FormatCloseMessage(CLOSE_CODE_UNEXPECTED_ERROR, "")
+				closeMessage := websocket.FormatCloseMessage(closeCodeUnexpectedError, "")
 				ws.WriteControl(websocket.CloseMessage, closeMessage, time.Now().Add(1*time.Second))
 			}
 
@@ -135,10 +135,10 @@ func (this *Server) ListenFromSockets() {
 		if this.timeout <= 0 { // if timeout is 0 then wait forever and return when socket is done.
 			select {
 			case <-sock.done:
-				writtenCloseMessage = closeWebsocket(CLOSE_CODE_NORMAL, ws)
+				writtenCloseMessage = closeWebsocket(closeCodeNormal, ws)
 				return
 			case <-exitSignals:
-				writtenCloseMessage = closeWebsocket(CLOSE_CODE_GOING_AWAY, ws)
+				writtenCloseMessage = closeWebsocket(closeCodeGoingAway, ws)
 				return
 			}
 		}
@@ -146,13 +146,13 @@ func (this *Server) ListenFromSockets() {
 		select {
 		case <-time.After(this.timeout * time.Second):
 			sock.Close()
-			writtenCloseMessage = closeWebsocket(CLOSE_CODE_NORMAL, ws)
+			writtenCloseMessage = closeWebsocket(closeCodeNormal, ws)
 			return
 		case <-sock.done:
-			writtenCloseMessage = closeWebsocket(CLOSE_CODE_NORMAL, ws)
+			writtenCloseMessage = closeWebsocket(closeCodeNormal, ws)
 			return
 		case <-exitSignals:
-			writtenCloseMessage = closeWebsocket(CLOSE_CODE_GOING_AWAY, ws)
+			writtenCloseMessage = closeWebsocket(closeCodeGoingAway, ws)
 			return
 		}
 	}
@@ -311,7 +311,7 @@ func (this *Server) SendHeartbeatsPeriodically(period time.Duration) {
 
 				if sock.isWebsocket() {
 					if !sock.isClosed() {
-						sock.ws.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(PONGWAIT))
+						sock.ws.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(pongWait))
 					}
 				}
 
