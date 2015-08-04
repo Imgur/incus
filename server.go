@@ -7,6 +7,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/alexjlockwood/gcm"
@@ -15,8 +18,16 @@ import (
 )
 
 const (
-	writeWait = 5 * time.Second
-	pongWait  = 1 * time.Second
+	writeWait                         = 5 * time.Second
+	pongWait                          = 1 * time.Second
+	abnormalCloseControlWriteDeadline = 1 * time.Second
+	websocketReadBufferSize           = 1024
+	websocketWriteBufferSize          = 1024
+
+	// RFC 6455 Section 7
+	closeCodeNormal          = 1000
+	closeCodeGoingAway       = 1001
+	closeCodeUnexpectedError = 1011
 )
 
 type GCMClient interface {
@@ -71,6 +82,12 @@ func NewServer(conf *Configuration, store *Storage) *Server {
 
 func (this *Server) ListenFromSockets() {
 	Connect := func(w http.ResponseWriter, r *http.Request) {
+		writtenCloseMessage := false
+
+		exitSignals := make(chan os.Signal)
+		signal.Notify(exitSignals, os.Interrupt, syscall.SIGTERM)
+		defer signal.Stop(exitSignals)
+
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed", 405)
 			return
@@ -80,7 +97,7 @@ func (this *Server) ListenFromSockets() {
 		//        return
 		// }
 
-		ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
+		ws, err := websocket.Upgrade(w, r, nil, websocketReadBufferSize, websocketWriteBufferSize)
 		if _, ok := err.(websocket.HandshakeError); ok {
 			http.Error(w, "Not a websocket handshake", 400)
 			return
@@ -90,6 +107,11 @@ func (this *Server) ListenFromSockets() {
 		}
 
 		defer func() {
+			if !writtenCloseMessage {
+				closeMessage := websocket.FormatCloseMessage(closeCodeUnexpectedError, "")
+				ws.WriteControl(websocket.CloseMessage, closeMessage, time.Now().Add(abnormalCloseControlWriteDeadline))
+			}
+
 			ws.Close()
 			this.Stats.LogWebsocketDisconnection()
 			if DEBUG {
@@ -114,15 +136,26 @@ func (this *Server) ListenFromSockets() {
 		go sock.listenForWrites()
 
 		if this.timeout <= 0 { // if timeout is 0 then wait forever and return when socket is done.
-			<-sock.done
-			return
+			select {
+			case <-sock.done:
+				writtenCloseMessage = closeWebsocket(closeCodeNormal, ws)
+				return
+			case <-exitSignals:
+				writtenCloseMessage = closeWebsocket(closeCodeGoingAway, ws)
+				return
+			}
 		}
 
 		select {
 		case <-time.After(this.timeout * time.Second):
 			sock.Close()
+			writtenCloseMessage = closeWebsocket(closeCodeNormal, ws)
 			return
 		case <-sock.done:
+			writtenCloseMessage = closeWebsocket(closeCodeNormal, ws)
+			return
+		case <-exitSignals:
+			writtenCloseMessage = closeWebsocket(closeCodeGoingAway, ws)
 			return
 		}
 	}
@@ -130,8 +163,18 @@ func (this *Server) ListenFromSockets() {
 	http.HandleFunc("/socket", Connect)
 }
 
+func closeWebsocket(closeCode int, ws *websocket.Conn) bool {
+	closeMessage := websocket.FormatCloseMessage(closeCode, "")
+	err := ws.WriteControl(websocket.CloseMessage, closeMessage, time.Now().Add(1*time.Second))
+	return err == nil
+}
+
 func (this *Server) ListenFromLongpoll() {
 	LpConnect := func(w http.ResponseWriter, r *http.Request) {
+		exitSignals := make(chan os.Signal)
+		signal.Notify(exitSignals, os.Interrupt, syscall.SIGTERM)
+		defer signal.Stop(exitSignals)
+
 		defer func() {
 			r.Body.Close()
 			if DEBUG {
@@ -145,7 +188,6 @@ func (this *Server) ListenFromLongpoll() {
 		w.Header().Set("Cache-Control", "private, no-store, no-cache, must-revalidate, post-check=0, pre-check=0")
 		w.Header().Set("Connection", "keep-alive")
 		//w.Header().Set("Content-Encoding", "gzip")
-		w.WriteHeader(200)
 
 		if DEBUG {
 			log.Printf("Long poll connected via \n")
@@ -178,13 +220,32 @@ func (this *Server) ListenFromLongpoll() {
 
 		go sock.listenForWrites()
 
-		select {
-		case <-time.After(30 * time.Second):
-			sock.Close()
-			return
-		case <-sock.done:
-			return
+		if this.timeout > 0 {
+			select {
+			case <-exitSignals:
+				sock.Close()
+				w.WriteHeader(503)
+				return
+			case <-time.After(this.timeout * time.Second):
+				sock.Close()
+				w.WriteHeader(204)
+				return
+			case <-sock.done:
+				w.WriteHeader(200)
+				return
+			}
+		} else {
+			select {
+			case <-exitSignals:
+				sock.Close()
+				w.WriteHeader(503)
+				return
+			case <-sock.done:
+				w.WriteHeader(200)
+				return
+			}
 		}
+
 	}
 
 	http.HandleFunc("/lp", LpConnect)
