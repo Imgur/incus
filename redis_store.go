@@ -199,7 +199,7 @@ func (this *RedisStore) MarkInactive(user, socket_id string) {
 
 	userSortedSetKey := this.presenceKeyPrefix + ":" + user
 
-	conn.Do("ZREM", userSortedSetKey, user)
+	conn.Do("ZREM", userSortedSetKey, socket_id)
 }
 
 func (this *RedisStore) QueryIsUserActive(user string, nowTimestamp int64) (bool, error) {
