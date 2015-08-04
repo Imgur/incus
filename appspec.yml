@@ -16,11 +16,14 @@ permissions:
     mode: 755
 hooks:
   ApplicationStop:
-    - location: scripts/codedeploy/stop.sh
+    - location: scripts/codedeploy/deregister_from_elb_and_stop.sh
       timeout: 60
       runas: root
   ApplicationStart:
     - location: scripts/codedeploy/start.sh
+      timeout: 60
+      runas: root
+    - location: scripts/codedeploy/register_with_elb.sh
       timeout: 60
       runas: root
   ValidateService:

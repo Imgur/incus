@@ -72,6 +72,10 @@ for elb in $ELB_LIST; do
     fi
 done
 
+# IMGUR: Send SIGTERM to Incus to notify clients to re-connect
+
+/etc/init.d/incus stop
+
 # Wait for all Deregistrations to finish
 msg "Waiting for instance to de-register from its load balancers"
 for elb in $ELB_LIST; do
