@@ -18,8 +18,11 @@ import (
 )
 
 const (
-	writeWait = 5 * time.Second
-	pongWait  = 1 * time.Second
+	writeWait                         = 5 * time.Second
+	pongWait                          = 1 * time.Second
+	abnormalCloseControlWriteDeadline = 1 * time.Second
+	websocketReadBufferSize           = 1024
+	websocketWriteBufferSize          = 1024
 
 	// RFC 6455 Section 7
 	closeCodeNormal          = 1000
@@ -94,7 +97,7 @@ func (this *Server) ListenFromSockets() {
 		//        return
 		// }
 
-		ws, err := websocket.Upgrade(w, r, nil, 1024, 1024)
+		ws, err := websocket.Upgrade(w, r, nil, websocketReadBufferSize, websocketWriteBufferSize)
 		if _, ok := err.(websocket.HandshakeError); ok {
 			http.Error(w, "Not a websocket handshake", 400)
 			return
@@ -106,7 +109,7 @@ func (this *Server) ListenFromSockets() {
 		defer func() {
 			if !writtenCloseMessage {
 				closeMessage := websocket.FormatCloseMessage(closeCodeUnexpectedError, "")
-				ws.WriteControl(websocket.CloseMessage, closeMessage, time.Now().Add(1*time.Second))
+				ws.WriteControl(websocket.CloseMessage, closeMessage, time.Now().Add(abnormalCloseControlWriteDeadline))
 			}
 
 			ws.Close()
