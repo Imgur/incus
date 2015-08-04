@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const gracefulShutdownTimeout = 5
+
 var store *incus.Storage
 
 // Inserted at compile time by -ldflags "-X main.BUILD foo"
@@ -79,10 +81,10 @@ func InstallSignalHandlers() {
 		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 		sig := <-signals
 		log.Printf("%v caught, incus is going down...", sig)
-		log.Printf("Waiting %d seconds for goroutines to shut down...", 5)
+		log.Printf("Waiting %d seconds for goroutines to shut down...", gracefulShutdownTimeout)
 
 		select {
-		case <-time.After(5 * time.Second):
+		case <-time.After(gracefulShutdownTimeout * time.Second):
 			shutdown()
 		case sig := <-signals:
 			log.Printf("%v caught again. Exiting immediately...", sig)
