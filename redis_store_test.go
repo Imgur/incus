@@ -220,4 +220,24 @@ func TestUserPresence(t *testing.T) {
 	if active {
 		t.Fatalf("Expected 'foobar' to be inactive")
 	}
+
+	store.MarkActive("bazbar", "sock1", time.Now().Unix())
+
+	active, err = store.QueryIsUserActive("bazbar", time.Now().Unix())
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err.Error())
+	}
+	if !active {
+		t.Fatalf("Expected 'bazbar' to be active")
+	}
+
+	store.MarkInactive("bazbar", "sock1")
+
+	active, err = store.QueryIsUserActive("bazbar", time.Now().Unix())
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err.Error())
+	}
+	if active {
+		t.Fatalf("Expected 'bazbar' to be inactive")
+	}
 }
