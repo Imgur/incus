@@ -1,25 +1,25 @@
 #!/bin/bash
 
-REDIS_ENABLED=true incus &
-INCUSPID=$!
+set -e
+
+start_incus() {
+    REDIS_ENABLED=true incus &
+    INCUSPID=$!
+}
+
+stop_incus() {
+    kill $INCUSPID
+}
+
+trap "stop_incus" EXIT
+
+go test -v ./
+
+start_incus
 
 go test -v ./incustest
-RV=$?
-
-if [[ $RV ]]; then 
-    kill $INCUSPID
-    exit $RV
-fi
 
 # for some reason go test -bench only works in current directory?
 cd incustest
 go test -bench -v .
-RV=$?
-
-if [[ $RV ]]; then 
-    kill $INCUSPID
-    exit $RV
-fi
-
-kill $INCUSPID
 exit 0
