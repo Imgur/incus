@@ -231,7 +231,7 @@ func (this *Server) ListenFromLongpoll() {
 				w.WriteHeader(204)
 				return
 			case <-sock.done:
-				w.WriteHeader(200)
+				// No need to write 200, as it's already written implicitly.
 				return
 			}
 		} else {
@@ -241,7 +241,7 @@ func (this *Server) ListenFromLongpoll() {
 				w.WriteHeader(503)
 				return
 			case <-sock.done:
-				w.WriteHeader(200)
+				// No need to write 200, as it's already written implicitly.
 				return
 			}
 		}
