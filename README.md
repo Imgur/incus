@@ -20,36 +20,12 @@ Middleware for distributing messages via websockets, long polling, and push noti
 
 ![diagram](http://i.imgur.com/dwAn1l0.png?1)
 
-### incus.js
-Once incus is running you can include incus.js onto your site.
-Here's the basic usage of incus.js
+### Front-end bindings
 
-```Javascript
-var socket = new Incus('http://localhost:4000', 'UID', '/page/path');
-socket.on('connect', function() {
-    console.log('connected');
-}
+#### JavaScript: incus.js
 
-socket.on('Event', function(data) {
-    alert(data);
-}
+The [incus.js](https://www.npmjs.com/package/incusjs) front-end npm browserified module is provided for consuming WebSocket events in the Browser or server-side. Self-contained, minified downloads [are also available](https://github.com/jacobgreenleaf/incusjs/releases). 
 
-socket.on('Event1', function (data) {
-   console.log(data);
-}
-
-socket.on('Event2', function(data) {
-    console.log('neat');
-} 
-
-var data = {data: 'dummy-data'};
-
-$('#button').on('click', function() {
-    socket.MessageUser('Event', 'UID', data); 
-    socket.MessageAll('Event1', data);
-    socket.MessagePage('Event2', '/page/path', data);
-});
-```
 
 ### Application to a web browser
 
