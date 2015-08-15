@@ -27,7 +27,7 @@ hooks:
       timeout: 60
       runas: root
     - location: scripts/codedeploy/register_with_elb.sh
-      timeout: 60
+      timeout: 600
       runas: root
     - location: scripts/codedeploy/start_monit.sh
       timeout: 60
