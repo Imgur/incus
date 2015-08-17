@@ -3,7 +3,7 @@
 set -e
 
 start_incus() {
-    REDIS_ENABLED=true incus &
+    REDIS_ENABLED=true connection_timeout=10 incus &
     INCUSPID=$!
 }
 
