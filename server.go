@@ -52,6 +52,10 @@ func NewServer(conf *Configuration, store *Storage) *Server {
 
 	timeout := time.Duration(conf.GetInt("connection_timeout"))
 
+	if timeout <= 0 {
+		panic(fmt.Errorf("connection_timeout <= 0: %+v", timeout))
+	}
+
 	var runtimeStats RuntimeStats
 
 	if conf.GetBool("datadog_enabled") {
@@ -135,17 +139,6 @@ func (this *Server) ListenFromSockets() {
 		go sock.listenForMessages()
 		go sock.listenForWrites()
 
-		if this.timeout <= 0 { // if timeout is 0 then wait forever and return when socket is done.
-			select {
-			case <-sock.done:
-				writtenCloseMessage = closeWebsocket(closeCodeNormal, ws)
-				return
-			case <-exitSignals:
-				writtenCloseMessage = closeWebsocket(closeCodeGoingAway, ws)
-				return
-			}
-		}
-
 		select {
 		case <-time.After(this.timeout * time.Second):
 			sock.Close()
@@ -220,30 +213,18 @@ func (this *Server) ListenFromLongpoll() {
 
 		go sock.listenForWrites()
 
-		if this.timeout > 0 {
-			select {
-			case <-exitSignals:
-				sock.Close()
-				w.WriteHeader(503)
-				return
-			case <-time.After(this.timeout * time.Second):
-				sock.Close()
-				w.WriteHeader(204)
-				return
-			case <-sock.done:
-				// No need to write 200, as it's already written implicitly.
-				return
-			}
-		} else {
-			select {
-			case <-exitSignals:
-				sock.Close()
-				w.WriteHeader(503)
-				return
-			case <-sock.done:
-				// No need to write 200, as it's already written implicitly.
-				return
-			}
+		select {
+		case <-exitSignals:
+			sock.Close()
+			w.WriteHeader(503)
+			return
+		case <-time.After(this.timeout * time.Second):
+			sock.Close()
+			w.WriteHeader(204)
+			return
+		case <-sock.done:
+			// No need to write 200, as it's already written implicitly.
+			return
 		}
 
 	}
