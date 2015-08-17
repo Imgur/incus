@@ -241,11 +241,17 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
 	msg, err := this.formatMessage()
 	if err != nil {
+		if DEBUG {
+			log.Printf("Error formatting message: %s", err.Error())
+		}
 		return
 	}
 
 	user, err := server.Store.Client(UID)
 	if err != nil {
+		if DEBUG {
+			log.Printf("Skipping UID %s because %s", UID, err.Error())
+		}
 		return
 	}
 
@@ -253,11 +259,19 @@ func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
 
 	for _, sock := range user {
 		if page != "" && page != sock.Page {
+			if DEBUG {
+				log.Printf("Skipping given page %s != %s", page, sock.Page)
+			}
+
 			continue
 		}
 
 		if !sock.isClosed() {
 			sock.buff <- msg
+		} else {
+			if DEBUG {
+				log.Printf("Skipping because closed")
+			}
 		}
 	}
 }
