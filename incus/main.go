@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-const gracefulShutdownTimeout = 5
-
 var store *incus.Storage
 
 // Inserted at compile time by -ldflags "-X main.BUILD foo"
@@ -25,6 +23,7 @@ func main() {
 	}
 
 	store = nil
+	signals := make(chan os.Signal, 1)
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -37,7 +36,8 @@ func main() {
 	initLogger(conf)
 	log.Printf("Incus built on %s", BUILD)
 
-	InstallSignalHandlers()
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	InstallSignalHandlers(signals)
 
 	store = incus.NewStore(&conf)
 
@@ -75,21 +75,11 @@ func listenAndServeTLS(conf incus.Configuration) {
 	}
 }
 
-func InstallSignalHandlers() {
+func InstallSignalHandlers(signals chan os.Signal) {
 	go func() {
-		signals := make(chan os.Signal, 1)
-		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 		sig := <-signals
 		log.Printf("%v caught, incus is going down...", sig)
-		log.Printf("Waiting %d seconds for goroutines to shut down...", gracefulShutdownTimeout)
-
-		select {
-		case <-time.After(gracefulShutdownTimeout * time.Second):
-			shutdown()
-		case sig := <-signals:
-			log.Printf("%v caught again. Exiting immediately...", sig)
-			shutdown()
-		}
+		shutdown()
 	}()
 }
 

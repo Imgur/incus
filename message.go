@@ -59,29 +59,6 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 
 		sock.Page = page
 		sock.Server.Store.SetPage(sock) // set new page
-	case "setpresence":
-		active, ok := this.Message["presence"]
-
-		if !ok {
-			if DEBUG {
-				log.Printf("Ignoring presence command with no boolean presence")
-			}
-
-			return
-		}
-
-		switch activeT := active.(type) {
-		case bool:
-			if activeT {
-				sock.Server.Store.redis.MarkActive(sock.UID, sock.SID, time.Now().Unix())
-			} else {
-				sock.Server.Store.redis.MarkInactive(sock.UID, sock.SID)
-			}
-		default:
-			if DEBUG {
-				log.Printf("Ignoring presence command with invalid (non-boolean) type")
-			}
-		}
 	}
 }
 
@@ -241,17 +218,11 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
 	msg, err := this.formatMessage()
 	if err != nil {
-		if DEBUG {
-			log.Printf("Error formatting message: %s", err.Error())
-		}
 		return
 	}
 
 	user, err := server.Store.Client(UID)
 	if err != nil {
-		if DEBUG {
-			log.Printf("Skipping UID %s because %s", UID, err.Error())
-		}
 		return
 	}
 
@@ -259,19 +230,11 @@ func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
 
 	for _, sock := range user {
 		if page != "" && page != sock.Page {
-			if DEBUG {
-				log.Printf("Skipping given page %s != %s", page, sock.Page)
-			}
-
 			continue
 		}
 
 		if !sock.isClosed() {
 			sock.buff <- msg
-		} else {
-			if DEBUG {
-				log.Printf("Skipping because closed")
-			}
 		}
 	}
 }
