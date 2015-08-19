@@ -82,7 +82,7 @@ func (this *Socket) Close() error {
 			this.Page = ""
 		}
 
-		this.Server.Store.redis.MarkInactive(this.UID, this.SID)
+		// this.Server.Store.redis.MarkInactive(this.UID, this.SID)
 
 		this.Server.Store.Remove(this)
 		close(this.done)
