@@ -11,10 +11,13 @@ import (
 
 const ClientsKey = "SocketClients"
 const PageKey = "PageClients"
+const PresenceKeyPrefix = "ClientPresence"
 
 type RedisStore struct {
-	clientsKey string
-	pageKey    string
+	clientsKey        string
+	pageKey           string
+	presenceKeyPrefix string
+	presenceDuration  int64
 
 	server      string
 	port        int
@@ -32,8 +35,10 @@ type redisPool struct {
 func newRedisStore(redis_host string, redis_port int) *RedisStore {
 
 	return &RedisStore{
-		clientsKey: ClientsKey,
-		pageKey:    PageKey,
+		clientsKey:        ClientsKey,
+		pageKey:           PageKey,
+		presenceKeyPrefix: PresenceKeyPrefix,
+		presenceDuration:  60,
 
 		server: redis_host,
 		port:   redis_port,
@@ -165,6 +170,52 @@ func (this *RedisStore) Poll(c chan []byte, queue string) error {
 	}()
 
 	return nil
+}
+
+func (this *RedisStore) MarkActive(user, socket_id string, timestamp int64) {
+	conn, err := this.GetConn()
+	if err != nil {
+		return
+	}
+	defer this.CloseConn(conn)
+
+	userSortedSetKey := this.presenceKeyPrefix + ":" + user
+
+	conn.Send("MULTI")
+	conn.Send("ZADD", userSortedSetKey, timestamp, socket_id)
+	conn.Send("EXPIRE", userSortedSetKey, timestamp+this.presenceDuration)
+	_, err = conn.Do("EXEC")
+	if err != nil {
+		log.Printf("Error marking user as active: %s", err.Error())
+	}
+}
+
+func (this *RedisStore) MarkInactive(user, socket_id string) {
+	conn, err := this.GetConn()
+	if err != nil {
+		return
+	}
+	defer this.CloseConn(conn)
+
+	userSortedSetKey := this.presenceKeyPrefix + ":" + user
+
+	conn.Do("ZREM", userSortedSetKey, socket_id)
+}
+
+func (this *RedisStore) QueryIsUserActive(user string, nowTimestamp int64) (bool, error) {
+	conn, err := this.GetConn()
+	if err != nil {
+		return false, err
+	}
+	defer this.CloseConn(conn)
+
+	userSortedSetKey := this.presenceKeyPrefix + ":" + user
+
+	reply, err := conn.Do("ZRANGEBYSCORE", userSortedSetKey, nowTimestamp-this.presenceDuration, nowTimestamp)
+
+	els := reply.([]interface{})
+
+	return len(els) > 0, nil
 }
 
 func (this *RedisStore) Publish(channel string, message string) {
