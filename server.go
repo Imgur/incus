@@ -45,7 +45,7 @@ type Server struct {
 	gcmProvider  func() GCMClient
 }
 
-func NewServer(conf *Configuration, store *Storage) *Server {
+func NewServer(conf *Configuration, store *Storage, stats RuntimeStats) *Server {
 	hash := md5.New()
 	io.WriteString(hash, time.Now().String())
 	id := string(hash.Sum(nil))
@@ -54,15 +54,6 @@ func NewServer(conf *Configuration, store *Storage) *Server {
 
 	if timeout <= 0 {
 		panic(fmt.Errorf("connection_timeout <= 0: %+v", timeout))
-	}
-
-	var runtimeStats RuntimeStats
-
-	if conf.GetBool("datadog_enabled") {
-		runtimeStats, _ = NewDatadogStats(conf.Get("datadog_host"))
-		runtimeStats.LogStartup()
-	} else {
-		runtimeStats = &DiscardStats{}
 	}
 
 	apnsProvider := func(build string) apns.APNSClient {
@@ -78,7 +69,7 @@ func NewServer(conf *Configuration, store *Storage) *Server {
 		Config:       conf,
 		Store:        store,
 		timeout:      timeout,
-		Stats:        runtimeStats,
+		Stats:        stats,
 		apnsProvider: apnsProvider,
 		gcmProvider:  gcmProvider,
 	}

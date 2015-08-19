@@ -13,22 +13,22 @@ type Storage struct {
 	pageMu sync.RWMutex
 }
 
-func NewStore(Config *Configuration) *Storage {
-	store_type := "memory"
+func NewStore(Config *Configuration, stats RuntimeStats) *Storage {
+	storeType := "memory"
 	var redisStore *RedisStore
 
 	if Config.GetBool("redis_enabled") {
-		redis_host := Config.Get("redis_port_6379_tcp_addr")
-		redis_port := Config.GetInt("redis_port_6379_tcp_port")
+		redisHost := Config.Get("redis_port_6379_tcp_addr")
+		redisPort := Config.GetInt("redis_port_6379_tcp_port")
 
-		redisStore = newRedisStore(redis_host, redis_port)
-		store_type = "redis"
+		redisStore = newRedisStore(redisHost, redisPort, Config.GetInt("redis_activity_consumers"), stats)
+		storeType = "redis"
 	}
 
 	var Store = Storage{
 		&MemoryStore{make(map[string]map[string]*Socket), make(map[string]map[string]*Socket), 0},
 		redisStore,
-		store_type,
+		storeType,
 
 		sync.RWMutex{},
 		sync.RWMutex{},

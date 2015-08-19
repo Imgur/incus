@@ -39,10 +39,20 @@ func main() {
 
 	InstallSignalHandlers()
 
-	store = incus.NewStore(&conf)
+	var stats incus.RuntimeStats
+
+	if conf.GetBool("datadog_enabled") {
+		stats, _ = incus.NewDatadogStats(conf.Get("datadog_host"))
+	} else {
+		stats = &incus.DiscardStats{}
+	}
+
+	stats.LogStartup()
+
+	store = incus.NewStore(&conf, stats)
 
 	incus.CLIENT_BROAD = conf.GetBool("client_broadcasts")
-	server := incus.NewServer(&conf, store)
+	server := incus.NewServer(&conf, store, stats)
 
 	go server.RecordStats(1 * time.Second)
 	go server.LogConnectedClientsPeriodically(20 * time.Second)

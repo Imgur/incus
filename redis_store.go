@@ -13,16 +13,22 @@ const ClientsKey = "SocketClients"
 const PageKey = "PageClients"
 const PresenceKeyPrefix = "ClientPresence"
 
+var timedOut = errors.New("Timed out waiting for Redis")
+
+type RedisCommand (func(redis.Conn) error)
+
 type RedisStore struct {
 	clientsKey        string
 	pageKey           string
 	presenceKeyPrefix string
 	presenceDuration  int64
 
-	server      string
-	port        int
-	pool        redisPool
-	pollingFreq time.Duration
+	server                    string
+	port                      int
+	pool                      *redisPool
+	pollingFreq               time.Duration
+	incomingRedisActivityCmds chan RedisCommand
+	pendingList               *RedisConsumerPendingList
 }
 
 //connection pool implimentation
@@ -32,31 +38,38 @@ type redisPool struct {
 	connFn      func() (redis.Conn, error) // function to create new connection.
 }
 
-func newRedisStore(redis_host string, redis_port int) *RedisStore {
+func newRedisStore(redisHost string, redisPort, activityConsumers int, stats RuntimeStats) *RedisStore {
+
+	pool := &redisPool{
+		connections: make(chan redis.Conn, 10),
+		maxIdle:     10,
+
+		connFn: func() (redis.Conn, error) {
+			client, err := redis.Dial("tcp", fmt.Sprintf("%s:%v", redisHost, redisPort))
+			if err != nil {
+				log.Printf("Redis connect failed: %s\n", err.Error())
+				return nil, err
+			}
+
+			return client, nil
+		},
+	}
+
+	incomingRedisActivityCmds := make(chan RedisCommand)
+	incomingRedisActivityCmdsSend := (<-chan RedisCommand)(incomingRedisActivityCmds)
+	redisConsumerPending := NewRedisConsumerPendingList(activityConsumers, incomingRedisActivityCmdsSend, stats, pool)
 
 	return &RedisStore{
-		clientsKey:        ClientsKey,
-		pageKey:           PageKey,
-		presenceKeyPrefix: PresenceKeyPrefix,
-		presenceDuration:  60,
-
-		server: redis_host,
-		port:   redis_port,
-		pool: redisPool{
-			connections: make(chan redis.Conn, 10),
-			maxIdle:     10,
-
-			connFn: func() (redis.Conn, error) {
-				client, err := redis.Dial("tcp", fmt.Sprintf("%s:%v", redis_host, redis_port))
-				if err != nil {
-					log.Printf("Redis connect failed: %s\n", err.Error())
-					return nil, err
-				}
-
-				return client, nil
-			},
-		},
-		pollingFreq: time.Millisecond * 100,
+		incomingRedisActivityCmds: incomingRedisActivityCmds,
+		pendingList:               redisConsumerPending,
+		clientsKey:                ClientsKey,
+		pageKey:                   PageKey,
+		presenceKeyPrefix:         PresenceKeyPrefix,
+		presenceDuration:          60,
+		server:                    redisHost,
+		port:                      redisPort,
+		pool:                      pool,
+		pollingFreq:               time.Millisecond * 100,
 	}
 
 }
@@ -173,49 +186,62 @@ func (this *RedisStore) Poll(c chan []byte, queue string) error {
 }
 
 func (this *RedisStore) MarkActive(user, socket_id string, timestamp int64) {
-	conn, err := this.GetConn()
-	if err != nil {
-		return
-	}
-	defer this.CloseConn(conn)
+	work := func(conn redis.Conn) error {
+		log.Println("Marking as active")
 
-	userSortedSetKey := this.presenceKeyPrefix + ":" + user
+		userSortedSetKey := this.presenceKeyPrefix + ":" + user
 
-	conn.Send("MULTI")
-	conn.Send("ZADD", userSortedSetKey, timestamp, socket_id)
-	conn.Send("EXPIRE", userSortedSetKey, timestamp+this.presenceDuration)
-	_, err = conn.Do("EXEC")
-	if err != nil {
-		log.Printf("Error marking user as active: %s", err.Error())
+		conn.Send("MULTI")
+		conn.Send("ZADD", userSortedSetKey, timestamp, socket_id)
+		conn.Send("EXPIRE", userSortedSetKey, timestamp+this.presenceDuration)
+		_, err := conn.Do("EXEC")
+		if err != nil {
+			log.Printf("Error marking user as active: %s", err.Error())
+		}
+
+		return err
 	}
+
+	this.incomingRedisActivityCmds <- work
 }
 
 func (this *RedisStore) MarkInactive(user, socket_id string) {
-	conn, err := this.GetConn()
-	if err != nil {
-		return
+	work := func(conn redis.Conn) error {
+		log.Println("Marking as inactive")
+
+		userSortedSetKey := this.presenceKeyPrefix + ":" + user
+
+		_, err := conn.Do("ZREM", userSortedSetKey, socket_id)
+		return err
 	}
-	defer this.CloseConn(conn)
 
-	userSortedSetKey := this.presenceKeyPrefix + ":" + user
-
-	conn.Do("ZREM", userSortedSetKey, socket_id)
+	this.incomingRedisActivityCmds <- work
 }
 
 func (this *RedisStore) QueryIsUserActive(user string, nowTimestamp int64) (bool, error) {
-	conn, err := this.GetConn()
-	if err != nil {
-		return false, err
+	resultChan := make(chan bool)
+
+	work := func(conn redis.Conn) error {
+		userSortedSetKey := this.presenceKeyPrefix + ":" + user
+
+		log.Println("Querying if a user is active")
+		reply, err := conn.Do("ZRANGEBYSCORE", userSortedSetKey, nowTimestamp-this.presenceDuration, nowTimestamp)
+
+		els := reply.([]interface{})
+
+		resultChan <- (len(els) > 0)
+
+		return err
 	}
-	defer this.CloseConn(conn)
 
-	userSortedSetKey := this.presenceKeyPrefix + ":" + user
+	this.incomingRedisActivityCmds <- work
 
-	reply, err := conn.Do("ZRANGEBYSCORE", userSortedSetKey, nowTimestamp-this.presenceDuration, nowTimestamp)
-
-	els := reply.([]interface{})
-
-	return len(els) > 0, nil
+	select {
+	case active := <-resultChan:
+		return active, nil
+	case <-time.After(5 * time.Second):
+		return false, timedOut
+	}
 }
 
 func (this *RedisStore) Publish(channel string, message string) {

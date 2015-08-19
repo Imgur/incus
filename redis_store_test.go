@@ -9,13 +9,15 @@ import (
 )
 
 func newTestRedisStore() *RedisStore {
+	stats := &DiscardStats{}
 	port, _ := strconv.Atoi(os.Getenv("REDIS_PORT_6379_TCP_PORT"))
-	store := newRedisStore(os.Getenv("REDIS_PORT_6379_TCP_ADDR"), port)
-	store.presenceDuration = 1
+	store := newRedisStore(os.Getenv("REDIS_PORT_6379_TCP_ADDR"), port, 3, stats)
+	store.presenceDuration = 10
 	return store
 }
 
 func TestMain(m *testing.M) {
+	DEBUG = true
 	store := newTestRedisStore()
 	_, err := store.GetConn()
 
@@ -192,7 +194,12 @@ func TestRCount(t *testing.T) {
 
 func TestUserPresence(t *testing.T) {
 	store := newTestRedisStore()
+	store.MarkInactive("foobar", "sock1")
+
+	time.Sleep(1 * time.Second)
+
 	active, err := store.QueryIsUserActive("foobar", time.Now().Unix())
+
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
@@ -202,6 +209,8 @@ func TestUserPresence(t *testing.T) {
 
 	store.MarkActive("foobar", "sock1", time.Now().Unix())
 
+	time.Sleep(1 * time.Second)
+
 	active, err = store.QueryIsUserActive("foobar", time.Now().Unix())
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
@@ -210,8 +219,8 @@ func TestUserPresence(t *testing.T) {
 		t.Fatalf("Expected 'foobar' to be active")
 	}
 
-	// wait for the redis key to expire
-	time.Sleep(2 * time.Second)
+	// wait multiple of presence duration for the redis key to expire
+	time.Sleep(60 * time.Second)
 
 	active, err = store.QueryIsUserActive("foobar", time.Now().Unix())
 	if err != nil {
@@ -223,6 +232,9 @@ func TestUserPresence(t *testing.T) {
 
 	store.MarkActive("bazbar", "sock1", time.Now().Unix())
 
+	// Give it time to propagate to Redis...
+	time.Sleep(1 * time.Second)
+
 	active, err = store.QueryIsUserActive("bazbar", time.Now().Unix())
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
@@ -232,6 +244,9 @@ func TestUserPresence(t *testing.T) {
 	}
 
 	store.MarkInactive("bazbar", "sock1")
+
+	// Give it time to propagate to Redis...
+	time.Sleep(1 * time.Second)
 
 	active, err = store.QueryIsUserActive("bazbar", time.Now().Unix())
 	if err != nil {
