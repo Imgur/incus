@@ -38,7 +38,7 @@ type RedisStore struct {
 	pool                      *redisPool
 	pollingFreq               time.Duration
 	incomingRedisActivityCmds chan RedisCommand
-	pendingList               *RedisConsumerPendingList
+	redisPendingQueue         *RedisQueue
 }
 
 //connection pool implimentation
@@ -48,7 +48,7 @@ type redisPool struct {
 	connFn      func() (redis.Conn, error) // function to create new connection.
 }
 
-func newRedisStore(redisHost string, redisPort, activityConsumers, connPoolSize int, stats RuntimeStats) *RedisStore {
+func newRedisStore(redisHost string, redisPort, numberOfActivityConsumers, connPoolSize int, stats RuntimeStats) *RedisStore {
 
 	pool := &redisPool{
 		connections: make(chan redis.Conn, connPoolSize),
@@ -65,21 +65,18 @@ func newRedisStore(redisHost string, redisPort, activityConsumers, connPoolSize 
 		},
 	}
 
-	incomingRedisActivityCmds := make(chan RedisCommand)
-	incomingRedisActivityCmdsSend := (<-chan RedisCommand)(incomingRedisActivityCmds)
-	redisConsumerPending := NewRedisConsumerPendingList(activityConsumers, incomingRedisActivityCmdsSend, stats, pool)
+	redisPendingQueue := NewRedisQueue(numberOfActivityConsumers, stats, pool)
 
 	return &RedisStore{
-		incomingRedisActivityCmds: incomingRedisActivityCmds,
-		pendingList:               redisConsumerPending,
-		clientsKey:                ClientsKey,
-		pageKey:                   PageKey,
-		presenceKeyPrefix:         PresenceKeyPrefix,
-		presenceDuration:          60,
-		server:                    redisHost,
-		port:                      redisPort,
-		pool:                      pool,
-		pollingFreq:               time.Millisecond * 100,
+		redisPendingQueue: redisPendingQueue,
+		clientsKey:        ClientsKey,
+		pageKey:           PageKey,
+		presenceKeyPrefix: PresenceKeyPrefix,
+		presenceDuration:  60,
+		server:            redisHost,
+		port:              redisPort,
+		pool:              pool,
+		pollingFreq:       time.Millisecond * 100,
 	}
 
 }
@@ -196,7 +193,7 @@ func (this *RedisStore) Poll(c chan []byte, queue string) error {
 }
 
 func (this *RedisStore) MarkActive(user, socket_id string, timestamp int64) error {
-	return this.runAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
+	return this.redisPendingQueue.RunAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
 		userSortedSetKey := this.presenceKeyPrefix + ":" + user
 
 		conn.Send("MULTI")
@@ -207,7 +204,7 @@ func (this *RedisStore) MarkActive(user, socket_id string, timestamp int64) erro
 }
 
 func (this *RedisStore) MarkInactive(user, socket_id string) error {
-	return this.runAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
+	return this.redisPendingQueue.RunAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
 		userSortedSetKey := this.presenceKeyPrefix + ":" + user
 
 		return conn.Do("ZREM", userSortedSetKey, socket_id)
@@ -215,7 +212,7 @@ func (this *RedisStore) MarkInactive(user, socket_id string) error {
 }
 
 func (this *RedisStore) QueryIsUserActive(user string, nowTimestamp int64) (bool, error) {
-	result := this.runAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
+	result := this.redisPendingQueue.RunAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
 		userSortedSetKey := this.presenceKeyPrefix + ":" + user
 
 		reply, err := conn.Do("ZRANGEBYSCORE", userSortedSetKey, nowTimestamp-this.presenceDuration, nowTimestamp)
@@ -229,27 +226,6 @@ func (this *RedisStore) QueryIsUserActive(user string, nowTimestamp int64) (bool
 		return false, result.Error
 	} else {
 		return result.Value.(bool), nil
-	}
-}
-
-func (this *RedisStore) runAsyncTimeout(timeout time.Duration, cb RedisCallback) RedisCommandResult {
-	resultChan := make(chan RedisCommandResult, 1)
-
-	job := RedisCommand{
-		Callback: cb,
-		Result:   resultChan,
-	}
-
-	this.incomingRedisActivityCmds <- job
-
-	select {
-	case result := <-resultChan:
-		return result
-	case <-time.After(timeout):
-		return RedisCommandResult{
-			Value: nil,
-			Error: timedOut,
-		}
 	}
 }
 

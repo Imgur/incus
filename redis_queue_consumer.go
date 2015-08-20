@@ -2,13 +2,13 @@ package incus
 
 import "log"
 
-type RedisConsumer struct {
+type RedisQueueConsumer struct {
 	commands <-chan RedisCommand
 	pool     *redisPool
 }
 
-func NewRedisConsumer(commands <-chan RedisCommand, pool *redisPool) *RedisConsumer {
-	consumer := &RedisConsumer{
+func NewRedisQueueConsumer(commands <-chan RedisCommand, pool *redisPool) *RedisQueueConsumer {
+	consumer := &RedisQueueConsumer{
 		commands: commands,
 		pool:     pool,
 	}
@@ -18,7 +18,7 @@ func NewRedisConsumer(commands <-chan RedisCommand, pool *redisPool) *RedisConsu
 	return consumer
 }
 
-func (r *RedisConsumer) ConsumeForever() {
+func (r *RedisQueueConsumer) ConsumeForever() {
 	for {
 		command := <-r.commands
 
