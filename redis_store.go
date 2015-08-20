@@ -15,7 +15,17 @@ const PresenceKeyPrefix = "ClientPresence"
 
 var timedOut = errors.New("Timed out waiting for Redis")
 
-type RedisCommand (func(redis.Conn) error)
+type RedisCallback (func(redis.Conn) (interface{}, error))
+
+type RedisCommandResult struct {
+	Error error
+	Value interface{}
+}
+
+type RedisCommand struct {
+	Callback RedisCallback
+	Result   chan RedisCommandResult
+}
 
 type RedisStore struct {
 	clientsKey        string
@@ -185,62 +195,61 @@ func (this *RedisStore) Poll(c chan []byte, queue string) error {
 	return nil
 }
 
-func (this *RedisStore) MarkActive(user, socket_id string, timestamp int64) {
-	work := func(conn redis.Conn) error {
-		log.Println("Marking as active")
-
+func (this *RedisStore) MarkActive(user, socket_id string, timestamp int64) error {
+	return this.runAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
 		userSortedSetKey := this.presenceKeyPrefix + ":" + user
 
 		conn.Send("MULTI")
 		conn.Send("ZADD", userSortedSetKey, timestamp, socket_id)
 		conn.Send("EXPIRE", userSortedSetKey, timestamp+this.presenceDuration)
-		_, err := conn.Do("EXEC")
-		if err != nil {
-			log.Printf("Error marking user as active: %s", err.Error())
-		}
-
-		return err
-	}
-
-	this.incomingRedisActivityCmds <- work
+		return conn.Do("EXEC")
+	}).Error
 }
 
-func (this *RedisStore) MarkInactive(user, socket_id string) {
-	work := func(conn redis.Conn) error {
-		log.Println("Marking as inactive")
-
+func (this *RedisStore) MarkInactive(user, socket_id string) error {
+	return this.runAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
 		userSortedSetKey := this.presenceKeyPrefix + ":" + user
 
-		_, err := conn.Do("ZREM", userSortedSetKey, socket_id)
-		return err
-	}
-
-	this.incomingRedisActivityCmds <- work
+		return conn.Do("ZREM", userSortedSetKey, socket_id)
+	}).Error
 }
 
 func (this *RedisStore) QueryIsUserActive(user string, nowTimestamp int64) (bool, error) {
-	resultChan := make(chan bool)
-
-	work := func(conn redis.Conn) error {
+	result := this.runAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
 		userSortedSetKey := this.presenceKeyPrefix + ":" + user
 
-		log.Println("Querying if a user is active")
 		reply, err := conn.Do("ZRANGEBYSCORE", userSortedSetKey, nowTimestamp-this.presenceDuration, nowTimestamp)
 
 		els := reply.([]interface{})
 
-		resultChan <- (len(els) > 0)
+		return (len(els) > 0), nil
+	})
 
-		return err
+	if result.Error != nil {
+		return false, result.Error
+	} else {
+		return result.Value.(bool), nil
+	}
+}
+
+func (this *RedisStore) runAsyncTimeout(timeout time.Duration, cb RedisCallback) RedisCommandResult {
+	resultChan := make(chan RedisCommandResult, 1)
+
+	job := RedisCommand{
+		Callback: cb,
+		Result:   resultChan,
 	}
 
-	this.incomingRedisActivityCmds <- work
+	this.incomingRedisActivityCmds <- job
 
 	select {
-	case active := <-resultChan:
-		return active, nil
-	case <-time.After(5 * time.Second):
-		return false, timedOut
+	case result := <-resultChan:
+		return result
+	case <-time.After(timeout):
+		return RedisCommandResult{
+			Value: nil,
+			Error: timedOut,
+		}
 	}
 }
 

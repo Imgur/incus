@@ -192,11 +192,12 @@ func TestRCount(t *testing.T) {
 	return
 }
 
-func TestUserPresence(t *testing.T) {
+func TestUserPresenceExpiresFromRedis(t *testing.T) {
 	store := newTestRedisStore()
-	store.MarkInactive("foobar", "sock1")
 
-	time.Sleep(1 * time.Second)
+	// Assert precondition, so that prior test runs don't mess up this one.
+	// It might also make sense in a separate test to white-box it and call DEL on what the key is supposed to be
+	store.MarkInactive("foobar", "sock1")
 
 	active, err := store.QueryIsUserActive("foobar", time.Now().Unix())
 
@@ -209,8 +210,6 @@ func TestUserPresence(t *testing.T) {
 
 	store.MarkActive("foobar", "sock1", time.Now().Unix())
 
-	time.Sleep(1 * time.Second)
-
 	active, err = store.QueryIsUserActive("foobar", time.Now().Unix())
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
@@ -219,8 +218,8 @@ func TestUserPresence(t *testing.T) {
 		t.Fatalf("Expected 'foobar' to be active")
 	}
 
-	// wait multiple of presence duration for the redis key to expire
-	time.Sleep(60 * time.Second)
+	// wait a bit more than the presence duration for the redis key to expire
+	time.Sleep(15 * time.Second)
 
 	active, err = store.QueryIsUserActive("foobar", time.Now().Unix())
 	if err != nil {
@@ -229,30 +228,28 @@ func TestUserPresence(t *testing.T) {
 	if active {
 		t.Fatalf("Expected 'foobar' to be inactive")
 	}
+}
+
+func TestUserPresenceIsImmediatelyRemovedUponMarkingInactive(t *testing.T) {
+	store := newTestRedisStore()
 
 	store.MarkActive("bazbar", "sock1", time.Now().Unix())
 
-	// Give it time to propagate to Redis...
-	time.Sleep(1 * time.Second)
-
-	active, err = store.QueryIsUserActive("bazbar", time.Now().Unix())
+	active, err := store.QueryIsUserActive("bazbar", time.Now().Unix())
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 	if !active {
-		t.Fatalf("Expected 'bazbar' to be active")
+		t.Fatalf("Expected precondition that 'bazbar' to be active")
 	}
 
 	store.MarkInactive("bazbar", "sock1")
-
-	// Give it time to propagate to Redis...
-	time.Sleep(1 * time.Second)
 
 	active, err = store.QueryIsUserActive("bazbar", time.Now().Unix())
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 	if active {
-		t.Fatalf("Expected 'bazbar' to be inactive")
+		t.Fatalf("Expected 'bazbar' to be inactive after affirmatively marking as inactive")
 	}
 }

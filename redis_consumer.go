@@ -29,7 +29,14 @@ func (r *RedisConsumer) ConsumeForever() {
 		conn, success := r.pool.Get()
 
 		if success {
-			command(conn)
+			result, err := command.Callback(conn)
+
+			// The Result channel is a buffered channel of length 1 so this does not block.
+			command.Result <- RedisCommandResult{
+				Value: result,
+				Error: err,
+			}
+
 			r.pool.Close(conn)
 		} else {
 			log.Println("Failed to get redis connection")
