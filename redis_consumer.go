@@ -30,6 +30,7 @@ func (r *RedisConsumer) ConsumeForever() {
 
 		if success {
 			command(conn)
+			r.pool.Close(conn)
 		} else {
 			log.Println("Failed to get redis connection")
 		}
