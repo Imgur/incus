@@ -11,7 +11,7 @@ import (
 func newTestRedisStore() *RedisStore {
 	stats := &DiscardStats{}
 	port, _ := strconv.Atoi(os.Getenv("REDIS_PORT_6379_TCP_PORT"))
-	store := newRedisStore(os.Getenv("REDIS_PORT_6379_TCP_ADDR"), port, 3, stats)
+	store := newRedisStore(os.Getenv("REDIS_PORT_6379_TCP_ADDR"), port, 5, 3, stats)
 	store.presenceDuration = 10
 	return store
 }

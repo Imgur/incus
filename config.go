@@ -31,6 +31,7 @@ func NewConfig() Configuration {
 		ConfigOption(mymap, "REDIS_PORT_6379_TCP_ADDR", "127.0.0.1")
 		ConfigOption(mymap, "REDIS_MESSAGE_QUEUE", "Incus_Queue")
 		ConfigOption(mymap, "REDIS_ACTIVITY_CONSUMERS", "8")
+		ConfigOption(mymap, "REDIS_CONNECTION_POOL_SIZE", "20")
 	}
 
 	_, tlsEnabled, _ := ConfigOption(mymap, "TLS_ENABLED", "false")

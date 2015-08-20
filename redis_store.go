@@ -38,11 +38,11 @@ type redisPool struct {
 	connFn      func() (redis.Conn, error) // function to create new connection.
 }
 
-func newRedisStore(redisHost string, redisPort, activityConsumers int, stats RuntimeStats) *RedisStore {
+func newRedisStore(redisHost string, redisPort, activityConsumers, connPoolSize int, stats RuntimeStats) *RedisStore {
 
 	pool := &redisPool{
-		connections: make(chan redis.Conn, 10),
-		maxIdle:     10,
+		connections: make(chan redis.Conn, connPoolSize),
+		maxIdle:     connPoolSize,
 
 		connFn: func() (redis.Conn, error) {
 			client, err := redis.Dial("tcp", fmt.Sprintf("%s:%v", redisHost, redisPort))
