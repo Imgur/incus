@@ -9,13 +9,15 @@ import (
 )
 
 func newTestRedisStore() *RedisStore {
+	stats := &DiscardStats{}
 	port, _ := strconv.Atoi(os.Getenv("REDIS_PORT_6379_TCP_PORT"))
-	store := newRedisStore(os.Getenv("REDIS_PORT_6379_TCP_ADDR"), port)
-	store.presenceDuration = 1
+	store := newRedisStore(os.Getenv("REDIS_PORT_6379_TCP_ADDR"), port, 5, 3, stats)
+	store.presenceDuration = 10
 	return store
 }
 
 func TestMain(m *testing.M) {
+	DEBUG = true
 	store := newTestRedisStore()
 	_, err := store.GetConn()
 
@@ -190,9 +192,15 @@ func TestRCount(t *testing.T) {
 	return
 }
 
-func TestUserPresence(t *testing.T) {
+func TestUserPresenceExpiresFromRedis(t *testing.T) {
 	store := newTestRedisStore()
+
+	// Assert precondition, so that prior test runs don't mess up this one.
+	// It might also make sense in a separate test to white-box it and call DEL on what the key is supposed to be
+	store.MarkInactive("foobar", "sock1")
+
 	active, err := store.QueryIsUserActive("foobar", time.Now().Unix())
+
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
@@ -210,8 +218,8 @@ func TestUserPresence(t *testing.T) {
 		t.Fatalf("Expected 'foobar' to be active")
 	}
 
-	// wait for the redis key to expire
-	time.Sleep(2 * time.Second)
+	// wait a bit more than the presence duration for the redis key to expire
+	time.Sleep(15 * time.Second)
 
 	active, err = store.QueryIsUserActive("foobar", time.Now().Unix())
 	if err != nil {
@@ -220,15 +228,19 @@ func TestUserPresence(t *testing.T) {
 	if active {
 		t.Fatalf("Expected 'foobar' to be inactive")
 	}
+}
+
+func TestUserPresenceIsImmediatelyRemovedUponMarkingInactive(t *testing.T) {
+	store := newTestRedisStore()
 
 	store.MarkActive("bazbar", "sock1", time.Now().Unix())
 
-	active, err = store.QueryIsUserActive("bazbar", time.Now().Unix())
+	active, err := store.QueryIsUserActive("bazbar", time.Now().Unix())
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 	if !active {
-		t.Fatalf("Expected 'bazbar' to be active")
+		t.Fatalf("Expected precondition that 'bazbar' to be active")
 	}
 
 	store.MarkInactive("bazbar", "sock1")
@@ -238,6 +250,6 @@ func TestUserPresence(t *testing.T) {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 	if active {
-		t.Fatalf("Expected 'bazbar' to be inactive")
+		t.Fatalf("Expected 'bazbar' to be inactive after affirmatively marking as inactive")
 	}
 }

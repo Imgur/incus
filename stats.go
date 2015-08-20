@@ -30,28 +30,31 @@ type RuntimeStats interface {
 	LogGCMPush()
 	LogGCMError()
 	LogGCMFailure()
+
+	LogPendingRedisActivityCommandsListLength(int)
 }
 
 type DiscardStats struct{}
 
-func (d *DiscardStats) LogStartup()                     {}
-func (d *DiscardStats) LogClientCount(int64)            {}
-func (d *DiscardStats) LogCommand(from, cmdType string) {}
-func (d *DiscardStats) LogPageMessage()                 {}
-func (d *DiscardStats) LogUserMessage()                 {}
-func (d *DiscardStats) LogBroadcastMessage()            {}
-func (d *DiscardStats) LogWebsocketConnection()         {}
-func (d *DiscardStats) LogWebsocketDisconnection()      {}
-func (d *DiscardStats) LogReadMessage()                 {}
-func (d *DiscardStats) LogWriteMessage()                {}
-func (d *DiscardStats) LogLongpollConnect()             {}
-func (d *DiscardStats) LogLongpollDisconnect()          {}
-func (d *DiscardStats) LogAPNSPush()                    {}
-func (d *DiscardStats) LogGCMPush()                     {}
-func (d *DiscardStats) LogAPNSError()                   {}
-func (d *DiscardStats) LogGCMError()                    {}
-func (d *DiscardStats) LogGCMFailure()                  {}
-func (d *DiscardStats) LogInvalidJSON()                 {}
+func (d *DiscardStats) LogStartup()                                   {}
+func (d *DiscardStats) LogClientCount(int64)                          {}
+func (d *DiscardStats) LogCommand(from, cmdType string)               {}
+func (d *DiscardStats) LogPageMessage()                               {}
+func (d *DiscardStats) LogUserMessage()                               {}
+func (d *DiscardStats) LogBroadcastMessage()                          {}
+func (d *DiscardStats) LogWebsocketConnection()                       {}
+func (d *DiscardStats) LogWebsocketDisconnection()                    {}
+func (d *DiscardStats) LogReadMessage()                               {}
+func (d *DiscardStats) LogWriteMessage()                              {}
+func (d *DiscardStats) LogLongpollConnect()                           {}
+func (d *DiscardStats) LogLongpollDisconnect()                        {}
+func (d *DiscardStats) LogAPNSPush()                                  {}
+func (d *DiscardStats) LogGCMPush()                                   {}
+func (d *DiscardStats) LogAPNSError()                                 {}
+func (d *DiscardStats) LogGCMError()                                  {}
+func (d *DiscardStats) LogGCMFailure()                                {}
+func (d *DiscardStats) LogInvalidJSON()                               {}
+func (d *DiscardStats) LogPendingRedisActivityCommandsListLength(int) {}
 
 type DatadogStats struct {
 	dog *godspeed.Godspeed
@@ -159,4 +162,8 @@ func (d *DatadogStats) LogGCMFailure() {
 
 func (d *DatadogStats) LogInvalidJSON() {
 	d.dog.Incr("incus.jsonerror", nil)
+}
+
+func (d *DatadogStats) LogPendingRedisActivityCommandsListLength(length int) {
+	d.dog.Gauge("incus.pendingactivityredislen", float64(length), nil)
 }

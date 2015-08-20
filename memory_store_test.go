@@ -4,8 +4,9 @@ import (
 	"testing"
 )
 
+var Stats = &DiscardStats{}
 var Config = NewConfig()
-var MemStore = NewStore(&Config).memory
+var MemStore = NewStore(&Config, Stats).memory
 var Socket1 *Socket
 var Socket2 *Socket
 var Socket3 *Socket
