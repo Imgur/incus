@@ -112,9 +112,16 @@ The GCM service does not offer a feedback service. When a push fails, Incus will
 
 ## Installation
 ### Method 1: Docker
-Install [Docker](https://docs.docker.com/installation/#installation)
 
-Start an instance of Redis:
+* Install [Docker](https://docs.docker.com/installation/#installation)
+
+* Download configuration file 
+
+```Shell
+wget https://raw.githubusercontent.com/Imgur/incus/master/incus.conf
+```
+
+* Start an instance of Redis:
 
 ```Shell
 docker run -d --name incusredis redis
@@ -123,7 +130,14 @@ docker run -d --name incusredis redis
 Start Incus:
 
 ```Shell
-docker run -d --link incusredis:redis  --name incus \
+docker run --env-file incus.conf -d --link incusredis:redis  --name incus \
+        -e REDIS_ENABLED=true -p 4000:4000 jwgur/incus 
+```
+
+Alternatively, to start Incus with a pre-existing Redis listening on `A.B.C.D:8888`:
+
+```Shell
+docker run --env-file incus.conf -d -e REDIS_PORT_6379_TCP_ADDR=A.B.C.D -e REDIS_PORT_6379_TCP_PORT=8888 --name incus \
         -e REDIS_ENABLED=true -p 4000:4000 jwgur/incus 
 ```
 
