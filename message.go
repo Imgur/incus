@@ -120,6 +120,42 @@ func (this *CommandMsg) FromRedis(server *Server) {
 		if strings.ToLower(this.Command["push_type"]) == "android" {
 			this.pushAndroid(server)
 		}
+	case "pushormessage":
+
+		active, err := server.Store.redis.QueryIsUserActive(this.Command["user"], time.Now().Unix())
+
+		if err == nil {
+			if active {
+				websocketMessage := &CommandMsg{
+					Command: this.Command,
+					Message: this.Message["websocket"].(map[string]interface{}),
+				}
+
+				websocketMessage.sendMessage(server)
+			} else {
+				iosMessage, ok := this.Message["ios"]
+
+				if ok {
+					iosCommand := &CommandMsg{
+						Command: this.Command,
+						Message: iosMessage.(map[string]interface{}),
+					}
+					iosCommand.pushiOS(server)
+				}
+
+				androidMessage, ok := this.Message["android"]
+				if ok {
+					androidCommand := &CommandMsg{
+						Command: this.Command,
+						Message: androidMessage.(map[string]interface{}),
+					}
+					androidCommand.pushAndroid(server)
+				}
+
+			}
+		} else {
+			log.Printf("Error fetching whether %s was active: %s", this.Command["user"], err.Error())
+		}
 	}
 }
 

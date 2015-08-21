@@ -104,6 +104,36 @@ Multiple registration ids can be listed in the same command
 }
 ```
 
+#### Presence-based message routing
+
+```Javascript
+{
+    "command" : {
+        "command": "pushormessage",
+        "user": string -- Unique User ID,
+        "device_token": string -- device token registered with APNS,
+        "build": string -- build environment (store|beta|enterprise|development)
+        "registration_ids": string -- one or more registration ids separated by commas
+    },
+    "message" : {
+        "push": {
+            "ios": {
+                "badge_count": optional int,
+                "message_text": string,
+                ...
+            },
+            "android": {
+                ...
+            }
+        },
+        "websocket": {
+            ...
+        }
+        "time": int
+    }
+}
+```
+
 #### APNS and GCM errors
 
 Incus does **not** interact with the [APNS Feedback Service](https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/CommunicatingWIthAPS.html#//apple_ref/doc/uid/TP40008194-CH101-SW3). You should follow the APNS' guidelines on failed push attempts. They require querying their feedback service daily to find bad device tokens. 
