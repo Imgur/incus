@@ -5,8 +5,8 @@ import (
 )
 
 var Stats = &DiscardStats{}
-var Config = NewConfig()
-var MemStore = NewStore(&Config, Stats).memory
+var ConfigFilePath = "./"
+var MemStore = NewStore(Stats).memory
 var Socket1 *Socket
 var Socket2 *Socket
 var Socket3 *Socket
@@ -15,6 +15,8 @@ func init() {
 	Socket1 = newSocket(nil, nil, nil, "TEST")
 	Socket2 = newSocket(nil, nil, nil, "TEST1")
 	Socket3 = newSocket(nil, nil, nil, "TEST1")
+
+	NewConfig(ConfigFilePath)
 }
 
 func TestSave(t *testing.T) {

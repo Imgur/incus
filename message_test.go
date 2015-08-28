@@ -25,9 +25,6 @@ func TestAPNS(t *testing.T) {
 		}
 	}`), &msg)
 
-	configVars := make(map[string]string)
-	configVars["ios_push_sound"] = "bingbong.wav"
-
 	mockAPNS := &apns.MockClient{}
 
 	mockAPNS.On("Send", mock.AnythingOfType("*apns.PushNotification")).Return(&apns.PushNotificationResponse{
@@ -37,10 +34,7 @@ func TestAPNS(t *testing.T) {
 	})
 
 	server := &Server{
-		Stats: &DiscardStats{},
-		Config: &Configuration{
-			vars: configVars,
-		},
+		Stats:        &DiscardStats{},
 		apnsProvider: func(build string) apns.APNSClient { return mockAPNS },
 	}
 
@@ -103,7 +97,6 @@ func TestGCM(t *testing.T) {
 
 	server := &Server{
 		Stats:       &DiscardStats{},
-		Config:      &Configuration{},
 		gcmProvider: func() GCMClient { return mockGCM },
 	}
 
