@@ -15,6 +15,7 @@ import (
 	"github.com/alexjlockwood/gcm"
 	apns "github.com/anachronistic/apns"
 	"github.com/gorilla/websocket"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -35,38 +36,36 @@ type GCMClient interface {
 }
 
 type Server struct {
-	ID     string
-	Config *Configuration
-	Store  *Storage
-	Stats  RuntimeStats
+	ID    string
+	Store *Storage
+	Stats RuntimeStats
 
 	timeout      time.Duration
 	apnsProvider func(string) apns.APNSClient
 	gcmProvider  func() GCMClient
 }
 
-func NewServer(conf *Configuration, store *Storage, stats RuntimeStats) *Server {
+func NewServer(store *Storage, stats RuntimeStats) *Server {
 	hash := md5.New()
 	io.WriteString(hash, time.Now().String())
 	id := string(hash.Sum(nil))
 
-	timeout := time.Duration(conf.GetInt("connection_timeout"))
+	timeout := time.Duration(viper.GetInt("connection_timeout"))
 
 	if timeout <= 0 {
 		panic(fmt.Errorf("connection_timeout <= 0: %+v", timeout))
 	}
 
 	apnsProvider := func(build string) apns.APNSClient {
-		return apns.NewClient(conf.Get("apns_"+build+"_url"), conf.Get("apns_"+build+"_cert"), conf.Get("apns_"+build+"_private_key"))
+		return apns.NewClient(viper.GetString("apns_"+build+"_url"), viper.GetString("apns_"+build+"_cert"), viper.GetString("apns_"+build+"_private_key"))
 	}
 
 	gcmProvider := func() GCMClient {
-		return &gcm.Sender{ApiKey: conf.Get("gcm_api_key")}
+		return &gcm.Sender{ApiKey: viper.GetString("gcm_api_key")}
 	}
 
 	return &Server{
 		ID:           id,
-		Config:       conf,
 		Store:        store,
 		timeout:      timeout,
 		Stats:        stats,
@@ -224,25 +223,25 @@ func (this *Server) ListenFromLongpoll() {
 }
 
 func (this *Server) ListenFromRedis() {
-	if !this.Config.GetBool("redis_enabled") {
+	if !viper.GetBool("redis_enabled") {
 		return
 	}
 
 	subReciever := make(chan []byte, 10000)
 	queueReciever := make(chan []byte, 10000)
 
-	_, err := this.Store.redis.Subscribe(subReciever, this.Config.Get("redis_message_channel"))
+	_, err := this.Store.redis.Subscribe(subReciever, viper.GetString("redis_message_channel"))
 	if err != nil {
 		log.Fatal("Couldn't subscribe to redis channel")
 	}
 
-	err = this.Store.redis.Poll(queueReciever, this.Config.Get("redis_message_queue"))
+	err = this.Store.redis.Poll(queueReciever, viper.GetString("redis_message_queue"))
 	if err != nil {
 		log.Fatal("Couldn't start polling of redis queue")
 	}
 
 	if DEBUG {
-		log.Println("LISENING FOR REDIS MESSAGE")
+		log.Println("LISTENING FOR REDIS MESSAGE")
 	}
 
 	var subMessage []byte

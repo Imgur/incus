@@ -8,9 +8,9 @@ install:
 - export PATH=$PATH:~/.local/bin
 - ./scripts/prebuild.sh
 script:
-- REDIS_PORT_6379_TCP_ADDR=127.0.0.1 REDIS_PORT_6379_TCP_PORT=6379 ./scripts/build.sh
-- REDIS_PORT_6379_TCP_ADDR=127.0.0.1 REDIS_PORT_6379_TCP_PORT=6379 ./scripts/test.sh
+- ./scripts/build.sh
+- ./scripts/test.sh
 after_script:
-- REDIS_PORT_6379_TCP_ADDR=127.0.0.1 REDIS_PORT_6379_TCP_PORT=6379 go test -v -covermode=count -coverprofile=coverage.out .
+- go test -v -covermode=count -coverprofile=coverage.out .
 - goveralls -coverprofile=coverage.out -service travis-ci -repotoken $COVERALLS_TOKEN
 - ./scripts/deploy.sh

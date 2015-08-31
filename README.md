@@ -145,13 +145,20 @@ The GCM service does not offer a feedback service. When a push fails, Incus will
 
 * Install [Docker](https://docs.docker.com/installation/#installation)
 
-* Download configuration file 
+* Create a folder to share with Docker container:
 
 ```Shell
-wget https://raw.githubusercontent.com/Imgur/incus/master/incus.conf
+mkdir -p ~/incus
 ```
 
-* Start an instance of Redis:
+* Download configuration file and edit it at will:
+
+```Shell
+wget https://raw.githubusercontent.com/Imgur/incus/master/config.yml -O ~/incus/config.yml
+
+```
+
+* Start an instance of Redis (optional), skip it if you run your own Redis instance:
 
 ```Shell
 docker run -d --name incusredis redis
@@ -160,15 +167,19 @@ docker run -d --name incusredis redis
 Start Incus:
 
 ```Shell
-docker run --env-file incus.conf -d --link incusredis:redis  --name incus \
-        -e REDIS_ENABLED=true -p 4000:4000 jwgur/incus 
+docker run -i --name incus -p 4000:4000 --net="host" -v ~/incus:/etc/incus jwgur/incus 
 ```
 
-Alternatively, to start Incus with a pre-existing Redis listening on `A.B.C.D:8888`:
+To stop Incus run:
 
 ```Shell
-docker run --env-file incus.conf -d -e REDIS_PORT_6379_TCP_ADDR=A.B.C.D -e REDIS_PORT_6379_TCP_PORT=8888 --name incus \
-        -e REDIS_ENABLED=true -p 4000:4000 jwgur/incus 
+docker stop incus
+```
+
+To run it again simply:
+
+```Shell
+docker run incus
 ```
 
 ### Method 2: Source
@@ -189,7 +200,7 @@ go install -v ./incus
 cp $GOPATH/bin/incus /usr/sbin/incus
 cp scripts/initd.sh /etc/init.d/incus
 mkdir /etc/incus
-cp incus.conf /etc/incus/incus.conf
+cp config.yml /etc/incus/config.yml
 touch /var/log/incus.log
 ```
 
@@ -200,7 +211,7 @@ sudo /etc/init.d/incus stop
 sudo /etc/init.d/incus restart
 ```
 ## Configuration
-You can configure Incus by passing environment variables. Incus needs to be restarted after any variable change.
+Incus needs to be restarted after any configuration change.
 
 #### CLIENT_BROADCASTS
 
@@ -248,7 +259,7 @@ _________
 
 This value controls the TCP address (or hostname) to connect to Redis.
 
-Note: The environment variable name is always REDIS_PORT_6379_TCP_ADDR even if the port is not 6379.
+Note: The variable name is always REDIS_PORT_6379_TCP_ADDR even if the port is not 6379.
 
 Default: 127.0.0.1
 
@@ -257,7 +268,7 @@ _________
 
 This value controls the TCP port to connect to Redis.
 
-Note: The environment variable name is always REDIS_PORT_6379_TCP_PORT even if the port is not 6379.
+Note: The variable name is always REDIS_PORT_6379_TCP_PORT even if the port is not 6379.
 
 Default: 6379
 

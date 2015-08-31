@@ -15,9 +15,11 @@ import (
 	"time"
 )
 
-var INCUSHOST = "127.0.0.1:4000"
-var REDISHOST = "127.0.0.1"
-var REDISPORT = 6379
+var (
+	INCUSHOST = "127.0.0.1:4000"
+	REDISHOST = "127.0.0.1"
+	REDISPORT = 6379
+)
 
 func TestMain(m *testing.M) {
 	// Block until incus is ready

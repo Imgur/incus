@@ -1,0 +1,91 @@
+# Bool; true if clients are allowed to send messages to other clients, false otherwise.
+client_broadcasts: true
+
+# Port Incus will listen for new client connections on.
+listening_port: "4000"
+
+# How long to keep connections open for, in milliseconds.
+connection_timeout: 600000
+
+# Log_level should be set to debug or error.
+log_level: "debug"
+
+# Enable datadog stats?
+datadog_enabled: false
+
+# Datadog host if datadog enabled
+datadog_host: "127.0.0.1"
+
+# ----- Redis Support -----
+
+# Bool; Redis must be enabled if running Incus in a cluster.
+redis_enabled: true
+
+# If Redis is enabled, specify host and port.
+redis_port_6379_tcp_addr: "localhost"
+redis_port_6379_tcp_port: 6379
+
+# If Redis is enabled, redis_message_channel is the Redis channel Incus will subscribe to for incoming messages from application.
+redis_message_channel: "Incus"
+
+# If Redis is enabled, redis_message_queue is the Redis queue Incus will poll to for incoming messages from application.
+redis_message_queue: "Incus_Queue"
+
+# Number of concurrent consumers for managing presence commands.
+redis_activity_consumers: 8
+
+# Number of concurrent connections to Redis in the connection pool.
+redis_connection_pool_size: 20
+
+# ----- TLS Support -----
+
+# Bool; true if tls enabled, false otherwise.
+tls_enabled: false
+
+# TLS port.
+tls_port: "443"
+
+# Absolute path to certificate file.
+cert_file: "cert.pem"
+
+# Absoulte path to key file.
+key_file: "key.pem"
+
+# ----- Push Notification Support -----
+
+# iOS
+
+# Absolute path to the *production* APNs cert file and private key (used as default).
+apns_enabled: false
+apns_store_cert: "myapnsappcert.pem"
+apns_store_private_key: "myapnsappprivatekey.pem"
+
+# Absolute path to the *store* APNs cert file and private key.
+apns_enterprise_cert: "myapnsappcert.pem"
+apns_enterprise_private_key: "myapnsappprivatekey.pem"
+
+# Absolute path to the *beta* APNs cert file and private key.
+apns_beta_cert: "myapnsappcert.pem"
+apns_beta_private_key: "myapnsappprivatekey.pem"
+
+# Absolute path to the *development* APNs cert file and private key.
+apns_development_cert: "myapnsappcert.pem"
+apns_development_private_key: "myapnsappprivatekey.pem"
+
+# APNs production URL (used for 'enterprise' and 'store' builds).
+apns_production_url: "gateway.push.apple.com:2195"
+
+# APNs sandbox URL (used for 'beta' build).
+apns_sandbox_url: "gateway.sandbox.push.apple.com:2195"
+
+# Default iOS push sound
+ios_push_sound: "bingbong.aiff"
+
+# Android
+
+# GCM api key.
+gcm_enabled: false
+gcm_api_key: "your_gcm_api_key"
+
+# Android error Redis queue
+android_error_queue: "your_android_error_queue_name"

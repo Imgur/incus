@@ -3,15 +3,18 @@ package incus
 import (
 	"log"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 )
 
+var (
+	REDISHOST = "127.0.0.1"
+	REDISPORT = 6379
+)
+
 func newTestRedisStore() *RedisStore {
 	stats := &DiscardStats{}
-	port, _ := strconv.Atoi(os.Getenv("REDIS_PORT_6379_TCP_PORT"))
-	store := newRedisStore(os.Getenv("REDIS_PORT_6379_TCP_ADDR"), port, 5, 3, stats)
+	store := newRedisStore(REDISHOST, REDISPORT, 5, 3, stats)
 	store.presenceDuration = 10
 	return store
 }
@@ -22,9 +25,7 @@ func TestMain(m *testing.M) {
 	_, err := store.GetConn()
 
 	if err != nil {
-		addr, port := os.Getenv("REDIS_PORT_6379_TCP_ADDR"), os.Getenv("REDIS_PORT_6379_TCP_PORT")
-
-		log.Printf("Failed to connect to redis at %s:%s. Skipping redis tests.\n", addr, port)
+		log.Printf("Failed to connect to redis at %s:%d. Skipping redis tests.\n", REDISHOST, REDISPORT)
 	} else {
 		os.Exit(m.Run())
 	}

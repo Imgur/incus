@@ -8,7 +8,7 @@ if [ ! -d "/etc/incus" ]; then
     mkdir /etc/incus
 fi
 
-cp $GOPROJ/incus.conf /etc/incus/incus.conf
+cp $GOPROJ/config.yml /etc/incus/config.yml
 cp $GOPATH/bin/incus /usr/sbin/incus
 
 touch /var/log/incus.log

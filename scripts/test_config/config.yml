@@ -1,0 +1,9 @@
+# How long to keep connections open for, in milliseconds.
+connection_timeout: 10000
+
+# Bool; Redis must be enabled if running Incus in a cluster.
+redis_enabled: true
+
+# If Redis is enabled, specify host and port.
+redis_port_6379_tcp_addr: "127.0.0.1"
+redis_port_6379_tcp_port: 6379
