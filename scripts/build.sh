@@ -13,11 +13,14 @@ if [ "0" != "$(git status --porcelain | wc -l)" ]; then
     BUILDVAR="$BUILDVAR*"
 fi
 
-rm -f $GOPATH/bin/{incus,incustest} $GOPATH/incus.tar && \
-    go get -d -v ./... && \
-    go install -ldflags "-X main.BUILD $BUILDVAR" $BUILDR && \
-    go vet ./...  && \
-    go test -v $BUILDR && \
-    tar cf $GOPATH/incus.tar -C $GOPATH bin/incus -C $GOPATH/src/github.com/Imgur/incus scripts/ appspec.yml
+rm -f $GOPATH/bin/{incus,incustest,config.yml} $GOPATH/incus.tar && \
+
+cp $GOPATH/src/github.com/Imgur/incus/scripts/test_config/config.yml $GOPATH/bin/
+
+go get -d -v ./... && \
+go install -ldflags "-X main.BUILD $BUILDVAR" $BUILDR && \
+go vet ./...  && \
+go test -v $BUILDR && \
+tar cf $GOPATH/incus.tar -C $GOPATH bin/incus -C $GOPATH/src/github.com/Imgur/incus scripts/ appspec.yml
 
 exit 0

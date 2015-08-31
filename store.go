@@ -2,6 +2,8 @@ package incus
 
 import (
 	"sync"
+
+	"github.com/spf13/viper"
 )
 
 type Storage struct {
@@ -13,15 +15,15 @@ type Storage struct {
 	pageMu sync.RWMutex
 }
 
-func NewStore(Config *Configuration, stats RuntimeStats) *Storage {
+func NewStore(stats RuntimeStats) *Storage {
 	storeType := "memory"
 	var redisStore *RedisStore
 
-	if Config.GetBool("redis_enabled") {
-		redisHost := Config.Get("redis_port_6379_tcp_addr")
-		redisPort := Config.GetInt("redis_port_6379_tcp_port")
-		connPoolSize := Config.GetInt("redis_connection_pool_size")
-		numConsumers := Config.GetInt("redis_activity_consumers")
+	if viper.GetBool("redis_enabled") {
+		redisHost := viper.GetString("redis_port_6379_tcp_addr")
+		redisPort := viper.GetInt("redis_port_6379_tcp_port")
+		connPoolSize := viper.GetInt("redis_connection_pool_size")
+		numConsumers := viper.GetInt("redis_activity_consumers")
 
 		redisStore = newRedisStore(redisHost, redisPort, numConsumers, connPoolSize, stats)
 		storeType = "redis"

@@ -9,6 +9,7 @@ import (
 
 	"github.com/alexjlockwood/gcm"
 	apns "github.com/anachronistic/apns"
+	"github.com/spf13/viper"
 )
 
 type CommandMsg struct {
@@ -103,12 +104,12 @@ func (this *CommandMsg) FromRedis(server *Server) {
 		this.sendMessage(server)
 
 	case "pushios":
-		if server.Config.GetBool("apns_enabled") {
+		if viper.GetBool("apns_enabled") {
 			this.pushiOS(server)
 		}
 
 	case "pushandroid":
-		if server.Config.GetBool("gcm_enabled") {
+		if viper.GetBool("gcm_enabled") {
 			this.pushAndroid(server)
 		}
 
@@ -206,7 +207,7 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	}
 
 	payload := apns.NewPayload()
-	payload.Sound = server.Config.Get("ios_push_sound")
+	payload.Sound = viper.GetString("ios_push_sound")
 
 	payload.Alert = msg.Data["message_text"]
 	badgeAmt, hasBadge := msg.Data["badge_count"]
@@ -262,7 +263,7 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 
 	if gcmResponse.Failure > 0 {
 		server.Stats.LogGCMFailure()
-		if !server.Config.GetBool("redis_enabled") {
+		if !viper.GetBool("redis_enabled") {
 			log.Println("Could not push to android_error_queue since redis is not enabled")
 			return
 		}
@@ -270,7 +271,7 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 		failurePayload := map[string]interface{}{"registration_ids": regIDs, "results": gcmResponse.Results}
 
 		msg_str, _ := json.Marshal(failurePayload)
-		server.Store.redis.Push(server.Config.Get("android_error_queue"), string(msg_str))
+		server.Store.redis.Push(viper.GetString("android_error_queue"), string(msg_str))
 	}
 }
 
@@ -356,5 +357,5 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 
 func (this *CommandMsg) forwardToRedis(server *Server) {
 	msg_str, _ := json.Marshal(this)
-	server.Store.redis.Publish(server.Config.Get("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster
+	server.Store.redis.Publish(viper.GetString("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster
 }
