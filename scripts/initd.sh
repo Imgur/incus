@@ -2,6 +2,7 @@
 
 # absolute path to executable binary
 progpath='/usr/sbin/incus'
+confpath='/etc/incus'
 logpath='/var/log/incus.log'
 
 # binary program name
@@ -10,8 +11,9 @@ prog=$(basename $progpath)
 # pid file
 pidfile="/var/run/${prog}.pid"
 
-# make sure full path to executable binary is found
+# make sure full path to executable binary and conf path is found
 ! [ -x $progpath ] && echo "$progpath: executable not found" && exit 1
+! [ -f "$confpath/config.yml" ] && echo "$confpath/config.yml: configuration file not found" && exit 1
 
 ulimit -n 1000000
 
@@ -29,7 +31,6 @@ start() {
   # see if running
   local pids=$(pidof $prog)
 
-  source /etc/incus/incus.conf
   export GOTRACEBACK=1
 
   if [ -n "$pids" ]; then
@@ -37,7 +38,7 @@ start() {
     return 0
   fi
   printf "%-50s%s" "Starting $prog: " ''
-  $progpath >> $logpath 2>&1 & 
+  $progpath --conf="$confpath/"  >> $logpath 2>&1 & 
 
   # save pid to file if you want
   echo $! > $pidfile
