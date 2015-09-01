@@ -37,7 +37,7 @@ type RedisStore struct {
 	server                    string
 	port                      int
 	pool                      *redisPool
-	pollingFreq               time.Duration
+	pollingFreq               int
 	incomingRedisActivityCmds chan RedisCommand
 	redisPendingQueue         *RedisQueue
 }
