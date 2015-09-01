@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/garyburd/redigo/redis"
+	"github.com/spf13/viper"
 )
 
 const ClientsKey = "SocketClients"
@@ -76,7 +77,7 @@ func newRedisStore(redisHost string, redisPort, numberOfActivityConsumers, connP
 		server:            redisHost,
 		port:              redisPort,
 		pool:              pool,
-		pollingFreq:       time.Millisecond * 100,
+		pollingFreq:       viper.GetInt("redis_blpop_timeout"),
 	}
 
 }
@@ -178,13 +179,11 @@ func (this *RedisStore) Poll(c chan []byte, queue string) error {
 				continue
 			}
 
-			message, err := redis.Bytes(consumer.Do("LPOP", queue))
+			message, err := redis.Bytes(consumer.Do("BLPOP", queue, this.pollingFreq))
 			this.CloseConn(consumer)
 
 			if err == nil && len(message) > 0 {
 				c <- message
-			} else {
-				time.Sleep(this.pollingFreq)
 			}
 		}
 	}()
