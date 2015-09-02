@@ -4,8 +4,8 @@ client_broadcasts: true
 # Port Incus will listen for new client connections on.
 listening_port: "4000"
 
-# How long to keep connections open for, in milliseconds.
-connection_timeout: 600000
+# How long to keep connections open for, in seconds.
+connection_timeout: 60
 
 # Log_level should be set to debug or error.
 log_level: "debug"
