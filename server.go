@@ -130,10 +130,6 @@ func (this *Server) ListenFromSockets() {
 		go sock.listenForWrites()
 
 		select {
-		case <-time.After(this.timeout * time.Second):
-			sock.Close()
-			writtenCloseMessage = closeWebsocket(closeCodeNormal, ws)
-			return
 		case <-sock.done:
 			writtenCloseMessage = closeWebsocket(closeCodeNormal, ws)
 			return
