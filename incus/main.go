@@ -75,7 +75,11 @@ func main() {
 	go server.LogConnectedClientsPeriodically(20 * time.Second)
 	go server.ListenFromRedis()
 	go server.ListenFromSockets()
-	go server.ListenFromLongpoll()
+
+	if viper.GetBool("longpoll_enabled") {
+		go server.ListenFromLongpoll()
+	}
+
 	go server.ListenForHTTPPings()
 	go server.SendHeartbeatsPeriodically(20 * time.Second)
 

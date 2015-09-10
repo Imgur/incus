@@ -16,6 +16,8 @@ datadog_enabled: false
 # Datadog host if datadog enabled
 datadog_host: "127.0.0.1"
 
+longpoll_enabled: true
+
 # ----- Redis Support -----
 
 # Bool; Redis must be enabled if running Incus in a cluster.
