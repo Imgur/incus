@@ -166,7 +166,6 @@ func (this *Server) ListenFromLongpoll() {
 			}
 		}()
 
-		sock := newSocket(nil, w, this, "")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "private, no-store, no-cache, must-revalidate, post-check=0, pre-check=0")
@@ -175,10 +174,12 @@ func (this *Server) ListenFromLongpoll() {
 
 		longpollIsDisabled := disableLongpoll.Load()
 		if longpollIsDisabled != nil && longpollIsDisabled.(bool) == true {
-			sock.Close()
+			w.Header().Set("Connection", "close")
 			w.WriteHeader(503)
 			return
 		}
+
+		sock := newSocket(nil, w, this, "")
 
 		if DEBUG {
 			log.Printf("Long poll connected via \n")
