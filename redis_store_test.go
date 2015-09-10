@@ -254,3 +254,40 @@ func TestUserPresenceIsImmediatelyRemovedUponMarkingInactive(t *testing.T) {
 		t.Fatalf("Expected 'bazbar' to be inactive after affirmatively marking as inactive")
 	}
 }
+
+func TestKillswitch(t *testing.T) {
+	store := newTestRedisStore()
+
+	store.DeactivateLongpollKillswitch()
+
+	active, err := store.GetIsLongpollKillswitchActive()
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err.Error())
+	}
+	if active {
+		t.Fatalf("Expected precondition that killswitch is inactive")
+	}
+
+	store.ActivateLongpollKillswitch(3)
+
+	active, err = store.GetIsLongpollKillswitchActive()
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err.Error())
+	}
+	if !active {
+		t.Fatalf("Expected killswitch to be active")
+	}
+
+	time.Sleep(4 * time.Second)
+
+	active, err = store.GetIsLongpollKillswitchActive()
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err.Error())
+	}
+	if active {
+		t.Fatalf("Expected killswitch to be inactive")
+	}
+}
