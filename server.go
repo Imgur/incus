@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/garyburd/redigo/redis"
 	"io"
 	"log"
 	"net/http"
@@ -330,19 +329,11 @@ func (this *Server) MonitorLongpollKillswitch() {
 		return
 	}
 
-	killswitchKey := viper.Get("longpoll_killswitch")
-
 	for {
-		result := this.Store.redis.redisPendingQueue.RunAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
-			return conn.Do("TTL", killswitchKey)
-		})
+		longpollSwitchedOff, err := this.Store.redis.GetIsLongpollKillswitchActive()
 
-		if result.Error == nil {
-			if result.Value.(int64) >= -1 {
-				disableLongpoll.Store(true)
-			} else {
-				disableLongpoll.Store(false)
-			}
+		if err == nil {
+			disableLongpoll.Store(longpollSwitchedOff)
 		}
 
 		time.Sleep(5 * time.Second)

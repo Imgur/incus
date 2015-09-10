@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/garyburd/redigo/redis"
+	"github.com/spf13/viper"
 )
 
 const ClientsKey = "SocketClients"
@@ -227,6 +228,40 @@ func (this *RedisStore) QueryIsUserActive(user string, nowTimestamp int64) (bool
 	} else {
 		return result.Value.(bool), nil
 	}
+}
+
+func (this *RedisStore) GetIsLongpollKillswitchActive() (bool, error) {
+	killswitchKey := viper.Get("longpoll_killswitch")
+
+	result := this.redisPendingQueue.RunAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
+		return conn.Do("TTL", killswitchKey)
+	})
+
+	if result.Error == nil {
+		if result.Value.(int64) >= -1 {
+			return true, nil
+		} else {
+			return false, nil
+		}
+	}
+
+	return false, timedOut
+}
+
+func (this *RedisStore) ActivateLongpollKillswitch(seconds int64) error {
+	killswitchKey := viper.Get("longpoll_killswitch")
+
+	return this.redisPendingQueue.RunAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
+		return conn.Do("SETEX", killswitchKey, seconds, "1")
+	}).Error
+}
+
+func (this *RedisStore) DeactivateLongpollKillswitch() error {
+	killswitchKey := viper.Get("longpoll_killswitch")
+
+	return this.redisPendingQueue.RunAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
+		return conn.Do("DEL", killswitchKey)
+	}).Error
 }
 
 func (this *RedisStore) Publish(channel string, message string) {
