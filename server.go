@@ -4,11 +4,13 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"github.com/garyburd/redigo/redis"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -29,6 +31,10 @@ const (
 	closeCodeNormal          = 1000
 	closeCodeGoingAway       = 1001
 	closeCodeUnexpectedError = 1011
+)
+
+var (
+	disableLongpoll atomic.Value
 )
 
 type GCMClient interface {
@@ -167,6 +173,13 @@ func (this *Server) ListenFromLongpoll() {
 		w.Header().Set("Cache-Control", "private, no-store, no-cache, must-revalidate, post-check=0, pre-check=0")
 		w.Header().Set("Connection", "keep-alive")
 		//w.Header().Set("Content-Encoding", "gzip")
+
+		longpollIsDisabled := disableLongpoll.Load()
+		if longpollIsDisabled != nil && longpollIsDisabled.(bool) == true {
+			sock.Close()
+			w.WriteHeader(503)
+			return
+		}
 
 		if DEBUG {
 			log.Printf("Long poll connected via \n")
@@ -310,4 +323,28 @@ func (this *Server) GetAPNSClient(build string) apns.APNSClient {
 
 func (this *Server) GetGCMClient() GCMClient {
 	return this.gcmProvider()
+}
+
+func (this *Server) MonitorLongpollKillswitch() {
+	if !viper.GetBool("redis_enabled") {
+		return
+	}
+
+	killswitchKey := viper.Get("longpoll_killswitch")
+
+	for {
+		result := this.Store.redis.redisPendingQueue.RunAsyncTimeout(5*time.Second, func(conn redis.Conn) (result interface{}, err error) {
+			return conn.Do("TTL", killswitchKey)
+		})
+
+		if result.Error == nil {
+			if result.Value.(int64) >= -1 {
+				disableLongpoll.Store(true)
+			} else {
+				disableLongpoll.Store(false)
+			}
+		}
+
+		time.Sleep(5 * time.Second)
+	}
 }
