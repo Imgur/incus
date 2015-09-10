@@ -155,6 +155,7 @@ func (this *Server) ListenFromLongpoll() {
 		defer signal.Stop(exitSignals)
 
 		defer func() {
+			this.Stats.LogLongpollDisconnect()
 			r.Body.Close()
 			if DEBUG {
 				log.Println("Socket Closed")
@@ -171,6 +172,8 @@ func (this *Server) ListenFromLongpoll() {
 		if DEBUG {
 			log.Printf("Long poll connected via \n")
 		}
+
+		this.Stats.LogLongpollConnect()
 
 		if err := sock.Authenticate(r.FormValue("user")); err != nil {
 			if DEBUG {
@@ -191,6 +194,8 @@ func (this *Server) ListenFromLongpoll() {
 
 		command := r.FormValue("command")
 		if command != "" {
+			this.Stats.LogReadMessage()
+
 			var cmd = new(CommandMsg)
 			json.Unmarshal([]byte(command), cmd)
 
