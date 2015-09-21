@@ -78,6 +78,10 @@ func TestGCM(t *testing.T) {
 			"data": {
 				"foobar": "foo"
 			},
+			"notification" : {
+				"title": "Notification Title",
+				"body": "Notification Body"
+			},
 			"time": 1234
 		}
 	}`), &msg)

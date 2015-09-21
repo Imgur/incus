@@ -97,9 +97,10 @@ Multiple registration ids can be listed in the same command
         "registration_ids" : string -- one or more registration ids separated by commas
     },
     "message" : {
-        "event" : string,
-        "data"  : object,
-        "time"  : int
+        "event" :       string,
+        "data"  :       object,
+        "notification": object,
+        "time"  :       int
     }
 }
 ```
