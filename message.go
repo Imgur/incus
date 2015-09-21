@@ -251,7 +251,7 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 	data := map[string]interface{}{"event": msg.Event, "data": msg.Data, "time": msg.Time}
 
 	regIDs := strings.Split(registration_ids, ",")
-	gcmMessage := gcm.NewMessage(data, regIDs..., msg.notification)
+	gcmMessage := gcm.NewMessage(data, regIDs..., msg.Notification)
 
 	sender := server.GetGCMClient()
 
