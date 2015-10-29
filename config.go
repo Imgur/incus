@@ -37,6 +37,7 @@ func NewConfig(configFilePath string) {
 		ConfigOption("redis_message_queue", "Incus_Queue")
 		ConfigOption("redis_activity_consumers", 8)
 		ConfigOption("redis_connection_pool_size", 20)
+		ConfigOption("redis_blpop_timeout", 10)
 	}
 
 	ConfigOption("tls_enabled", false)
