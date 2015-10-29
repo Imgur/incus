@@ -76,6 +76,8 @@ func main() {
 	go server.ListenFromRedis()
 	go server.ListenFromSockets()
 	go server.ListenFromLongpoll()
+	go server.MonitorLongpollKillswitch()
+
 	go server.ListenForHTTPPings()
 	go server.SendHeartbeatsPeriodically(20 * time.Second)
 

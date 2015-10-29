@@ -27,6 +27,7 @@ func NewConfig(configFilePath string) {
 		ConfigOption("datadog_host", "127.0.0.1")
 	}
 
+	ConfigOption("longpoll_killswitch", "longpoll_killswitch")
 	ConfigOption("redis_enabled", false)
 
 	if viper.GetBool("redis_enabled") {

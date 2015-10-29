@@ -134,7 +134,14 @@ func (this *CommandMsg) FromRedis(server *Server) {
 
 				websocketMessage.sendMessage(server)
 			} else {
-				iosMessage, ok := this.Message["ios"]
+
+				pushData, ok := this.Message["push"].(map[string]interface{})
+
+				if !ok {
+					return
+				}
+
+				iosMessage, ok := pushData["ios"]
 
 				if ok {
 					iosCommand := &CommandMsg{
@@ -144,7 +151,7 @@ func (this *CommandMsg) FromRedis(server *Server) {
 					iosCommand.pushiOS(server)
 				}
 
-				androidMessage, ok := this.Message["android"]
+				androidMessage, ok := pushData["android"]
 				if ok {
 					androidCommand := &CommandMsg{
 						Command: this.Command,
