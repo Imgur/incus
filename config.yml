@@ -40,6 +40,9 @@ redis_activity_consumers: 8
 # Number of concurrent connections to Redis in the connection pool.
 redis_connection_pool_size: 20
 
+# Max number of seconds BLPOP waits before returning anyway. Must be a positive integer. 0 means wait indefinitely.
+redis_blpop_timeout: 0
+
 # ----- TLS Support -----
 
 # Bool; true if tls enabled, false otherwise.
