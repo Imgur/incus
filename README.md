@@ -167,7 +167,7 @@ docker run -d --name incusredis redis
 Start Incus:
 
 ```Shell
-docker run -i --name incus -p 4000:4000 --net="host" -v ~/incus:/etc/incus Imgur/incus 
+docker run -i --name incus -p 4000:4000 --net="host" -v ~/incus:/etc/incus imgur/incus 
 ```
 
 To stop Incus run:
