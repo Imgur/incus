@@ -9,6 +9,7 @@ type RuntimeStats interface {
 	LogStartup()
 
 	LogClientCount(int64)
+	LogGoroutines(int)
 
 	LogCommand(from, cmdType string)
 	LogPageMessage()
@@ -38,6 +39,7 @@ type DiscardStats struct{}
 
 func (d *DiscardStats) LogStartup()                                   {}
 func (d *DiscardStats) LogClientCount(int64)                          {}
+func (d *DiscardStats) LogGoroutines(int64)                          {}
 func (d *DiscardStats) LogCommand(from, cmdType string)               {}
 func (d *DiscardStats) LogPageMessage()                               {}
 func (d *DiscardStats) LogUserMessage()                               {}
@@ -92,6 +94,10 @@ func (d *DatadogStats) LogStartup() {
 
 func (d *DatadogStats) LogClientCount(clients int64) {
 	d.dog.Gauge("incus.client_count", float64(clients), nil)
+}
+
+func (d *DatadogStats) LogGoroutines(goroutines int) {
+	d.dog.Gauge("incus.goroutines", float64(goroutines), nil)
 }
 
 func (d *DatadogStats) LogCommand(from, cmdType string) {
