@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+	"runtime"
 
 	"github.com/alexjlockwood/gcm"
 	apns "github.com/anachronistic/apns"
@@ -311,6 +312,7 @@ func (this *Server) SendHeartbeatsPeriodically(period time.Duration) {
 func (this *Server) RecordStats(period time.Duration) {
 	for {
 		this.Stats.LogClientCount(this.Store.memory.clientCount)
+		this.Stats.LogGoroutines(runtime.NumGoroutine())
 		time.Sleep(period)
 	}
 }
