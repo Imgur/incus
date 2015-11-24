@@ -181,6 +181,7 @@ func (this *RedisStore) Poll(c chan []byte, queue string) error {
 
 			message, err := redis.Bytes(consumer.Do("BLPOP", queue, this.pollingFreq))
 			this.CloseConn(consumer)
+            log.Printf("Message from redis: %s\n", message)
 
 			if err == nil && len(message) > 0 {
 				c <- message
