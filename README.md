@@ -24,7 +24,7 @@ Middleware for distributing messages via websockets, long polling, and push noti
 
 #### JavaScript: incus.js
 
-The [incus.js](https://www.npmjs.com/package/incusjs) front-end npm browserified module is provided for consuming WebSocket events in the Browser or server-side. Self-contained, minified downloads [are also available](https://github.com/jacobgreenleaf/incusjs/releases). 
+The [incus.js](https://www.npmjs.com/package/incusjs) front-end npm browserified module is provided for consuming WebSocket events in the Browser or server-side. Self-contained, minified downloads [are also available](https://github.com/Imgur/incusjs/releases). 
 
 
 ### Application to a web browser
@@ -143,7 +143,7 @@ The GCM service does not offer a feedback service. When a push fails, Incus will
 ## Installation
 ### Method 1: Docker
 
-* Install [Docker](https://docs.docker.com/installation/#installation)
+* Install [Docker](http://docs.docker.com/engine/installation/#installation)
 
 * Create a folder to share with Docker container:
 
@@ -183,7 +183,7 @@ docker run incus
 ```
 
 ### Method 2: Source
-Install GO: http://golang.org/doc/install
+Install GO: https://golang.org/doc/install
 
 Clone the repo:
 ```Shell
