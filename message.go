@@ -216,13 +216,13 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	payload := apns.NewPayload()
 	payload.Sound = viper.GetString("ios_push_sound")
 
-  // allow message or message_text to trigger Alert
-  _, messageExists := msg.Data["message"]; ok {
-    payload.Alert = msg.Data["message"]
-  }
-  _, textExists := msg.Data["message_text"]; ok {
-    payload.Alert = msg.Data["message_text"]
-  }
+	// allow message or message_text to trigger Alert
+	if _, messageExists := msg.Data["message"]; messageExists {
+		payload.Alert = msg.Data["message"]
+	}
+	if _, textExists := msg.Data["message_text"]; textExists {
+		payload.Alert = msg.Data["message_text"]
+	}
 
 	badgeAmt, hasBadge := msg.Data["badge_count"]
 	if hasBadge {
