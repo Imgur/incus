@@ -37,7 +37,7 @@ type RedisStore struct {
 	server                    string
 	port                      int
 	pool                      *redisPool
-	pollingFreq               int
+	pollingFreq               time.Duration
 	incomingRedisActivityCmds chan RedisCommand
 	redisPendingQueue         *RedisQueue
 }
@@ -77,7 +77,7 @@ func newRedisStore(redisHost string, redisPort, numberOfActivityConsumers, connP
 		server:            redisHost,
 		port:              redisPort,
 		pool:              pool,
-		pollingFreq:       viper.GetInt("redis_blpop_timeout"),
+		pollingFreq:       time.Millisecond * 100,
 	}
 
 }
@@ -179,11 +179,13 @@ func (this *RedisStore) Poll(c chan []byte, queue string) error {
 				continue
 			}
 
-			message, err := redis.Bytes(consumer.Do("BLPOP", queue, this.pollingFreq))
+			message, err := redis.Bytes(consumer.Do("LPOP", queue))
 			this.CloseConn(consumer)
 
 			if err == nil && len(message) > 0 {
 				c <- message
+			} else {
+				time.Sleep(this.pollingFreq)
 			}
 		}
 	}()
