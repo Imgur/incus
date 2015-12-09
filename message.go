@@ -18,9 +18,10 @@ type CommandMsg struct {
 }
 
 type Message struct {
-	Event string                 `json:"event"`
-	Data  map[string]interface{} `json:"data"`
-	Time  int64                  `json:"time"`
+	Event			string                 `json:"event"`
+	Data  			map[string]interface{} `json:"data"`
+	Notification	map[string]interface{} `json:"notification"`
+	Time			int64                  `json:"time"`
 }
 
 func (this *CommandMsg) FromSocket(sock *Socket) {
@@ -170,12 +171,13 @@ func (this *CommandMsg) FromRedis(server *Server) {
 func (this *CommandMsg) formatMessage() (*Message, error) {
 	event, e_ok := this.Message["event"].(string)
 	data, b_ok := this.Message["data"].(map[string]interface{})
+	notification, c_ok := this.Message["notification"].(map[string]interface{})
 
-	if !b_ok || !e_ok {
+	if !b_ok || !e_ok { // notification is optional
 		return nil, errors.New("Could not format message")
 	}
 
-	msg := &Message{event, data, time.Now().UTC().Unix()}
+	msg := &Message{event, data, notification, time.Now().UTC().Unix()}
 
 	return msg, nil
 }
@@ -263,7 +265,7 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 	data := map[string]interface{}{"event": msg.Event, "data": msg.Data, "time": msg.Time}
 
 	regIDs := strings.Split(registration_ids, ",")
-	gcmMessage := gcm.NewMessage(data, regIDs...)
+	gcmMessage := gcm.NewMessage(data, regIDs..., msg.Notification)
 
 	sender := server.GetGCMClient()
 
