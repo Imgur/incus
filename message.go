@@ -21,6 +21,7 @@ type Message struct {
 	Event string                 `json:"event"`
 	Data  map[string]interface{} `json:"data"`
 	Time  int64                  `json:"time"`
+	Url   string                 `json:"internal_url,omitempty"`
 }
 
 func (this *CommandMsg) FromSocket(sock *Socket) {
@@ -175,7 +176,17 @@ func (this *CommandMsg) formatMessage() (*Message, error) {
 		return nil, errors.New("Could not format message")
 	}
 
-	msg := &Message{event, data, time.Now().UTC().Unix()}
+	msg := &Message{
+		Event: event,
+		Data:  data,
+		Time:  time.Now().UTC().Unix(),
+	}
+
+	// hack for bad version of Imgur iOS client
+	url, url_ok := data["internal_url"].(string)
+	if url_ok {
+		msg.Url = url
+	}
 
 	return msg, nil
 }
