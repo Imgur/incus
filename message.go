@@ -239,6 +239,18 @@ func (this *CommandMsg) pushiOS(server *Server) {
 	if hasBadge {
 		payload.Badge = int(badgeAmt.(float64))
 	}
+	
+	if _, contentAvailable := msg.Data["content-available"] {
+		payload.ContentAvailable = msg.Data["content-available"]
+	}
+	
+	if _, hasSound := msg.Data["sound"] {
+		payload.Sound = msg.Data["sound"]
+	}
+	
+	if _, hasCategory := msg.Data["category"] {
+		payload.Category = msg.Data["category"]
+	}
 
 	pn := apns.NewPushNotification()
 	pn.DeviceToken = deviceToken
