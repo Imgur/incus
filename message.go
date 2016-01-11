@@ -22,6 +22,7 @@ type Message struct {
 	Data  map[string]interface{} `json:"data"`
 	Time  int64                  `json:"time"`
 	Url   string                 `json:"internal_url,omitempty"`
+	Title string                 `json:"title,omitempty"`
 }
 
 func (this *CommandMsg) FromSocket(sock *Socket) {
@@ -186,6 +187,11 @@ func (this *CommandMsg) formatMessage() (*Message, error) {
 	url, url_ok := data["internal_url"].(string)
 	if url_ok {
 		msg.Url = url
+	}
+
+	title, title_ok := data["title"].(string)
+	if title_ok {
+		msg.Title = title
 	}
 
 	return msg, nil
