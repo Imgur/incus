@@ -22,10 +22,16 @@ func NewStore(stats RuntimeStats) *Storage {
 	if viper.GetBool("redis_enabled") {
 		redisHost := viper.GetString("redis_port_6379_tcp_addr")
 		redisPort := viper.GetInt("redis_port_6379_tcp_port")
+		redisPassword := viper.GetString("redis_port_6379_tcp_password")
 		connPoolSize := viper.GetInt("redis_connection_pool_size")
 		numConsumers := viper.GetInt("redis_activity_consumers")
 
-		redisStore = newRedisStore(redisHost, redisPort, numConsumers, connPoolSize, stats)
+		if redisPassword == "" {
+			redisStore = newRedisStore(redisHost, redisPort, numConsumers, connPoolSize, stats)
+		} else {
+			redisStore = newRedisStorePassword(redisPassword, redisHost, redisPort, numConsumers, connPoolSize, stats)
+		}
+
 		storeType = "redis"
 	}
 

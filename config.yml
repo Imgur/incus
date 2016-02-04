@@ -27,6 +27,7 @@ redis_enabled: true
 # If Redis is enabled, specify host and port.
 redis_port_6379_tcp_addr: "localhost"
 redis_port_6379_tcp_port: 6379
+redis_port_6379_tcp_password: ""
 
 # If Redis is enabled, redis_message_channel is the Redis channel Incus will subscribe to for incoming messages from application.
 redis_message_channel: "Incus"
