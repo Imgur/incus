@@ -49,12 +49,45 @@ type redisPool struct {
 	connFn      func() (redis.Conn, error) // function to create new connection.
 }
 
-func newRedisStore(redisHost string, redisPort, numberOfActivityConsumers, connPoolSize int, stats RuntimeStats) *RedisStore {
-
+func newRedisStorePassword(redisPassword, redisHost string, redisPort, numberOfActivityConsumers, connPoolSize int, stats RuntimeStats) *RedisStore {
+	
 	pool := &redisPool{
 		connections: make(chan redis.Conn, connPoolSize),
 		maxIdle:     connPoolSize,
+		
+		connFn: func() (redis.Conn, error) {
+			client, err := redis.Dial("tcp", fmt.Sprintf("%s:%v", redisHost, redisPort), redis.DialPassword(redisPassword))
+			if err != nil {
+				log.Printf("Redis connect failed: %s\n", err.Error())
+				return nil, err
+			}
 
+			return client, nil
+		},
+	}
+
+	redisPendingQueue := NewRedisQueue(numberOfActivityConsumers, stats, pool)
+
+	return &RedisStore{
+		redisPendingQueue: redisPendingQueue,
+		clientsKey:        ClientsKey,
+		pageKey:           PageKey,
+		presenceKeyPrefix: PresenceKeyPrefix,
+		presenceDuration:  60,
+		server:            redisHost,
+		port:              redisPort,
+		pool:              pool,
+		pollingFreq:       time.Millisecond * 100,
+	}
+
+}
+
+func newRedisStore(redisHost string, redisPort, numberOfActivityConsumers, connPoolSize int, stats RuntimeStats) *RedisStore {
+	
+	pool := &redisPool{
+		connections: make(chan redis.Conn, connPoolSize),
+		maxIdle:     connPoolSize,
+		
 		connFn: func() (redis.Conn, error) {
 			client, err := redis.Dial("tcp", fmt.Sprintf("%s:%v", redisHost, redisPort))
 			if err != nil {
