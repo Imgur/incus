@@ -1,8 +1,9 @@
 package incus
 
 import (
-	"github.com/PagerDuty/godspeed"
 	"net"
+
+	"github.com/PagerDuty/godspeed"
 )
 
 type RuntimeStats interface {
@@ -39,7 +40,7 @@ type DiscardStats struct{}
 
 func (d *DiscardStats) LogStartup()                                   {}
 func (d *DiscardStats) LogClientCount(int64)                          {}
-func (d *DiscardStats) LogGoroutines(int)                          {}
+func (d *DiscardStats) LogGoroutines(int)                             {}
 func (d *DiscardStats) LogCommand(from, cmdType string)               {}
 func (d *DiscardStats) LogPageMessage()                               {}
 func (d *DiscardStats) LogUserMessage()                               {}
