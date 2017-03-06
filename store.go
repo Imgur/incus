@@ -30,7 +30,7 @@ func NewStore(stats RuntimeStats) *Storage {
 	}
 
 	var Store = Storage{
-		&MemoryStore{make(map[string]map[string]*Socket), make(map[string]map[string]*Socket), 0},
+		&MemoryStore{make(map[string]map[string]*Socket), make(map[string]map[string]*Socket), make(map[string]map[string]*Socket), 0},
 		redisStore,
 		storeType,
 
@@ -131,4 +131,38 @@ func (this *Storage) getPage(page string) map[string]*Socket {
 	defer this.pageMu.RUnlock()
 	this.pageMu.RLock()
 	return this.memory.getPage(page)
+}
+
+func (this *Storage) SetGroups(sock *Socket) error {
+	this.pageMu.Lock()
+	this.memory.SetGroups(sock)
+	this.pageMu.Unlock()
+
+	if this.StorageType == "redis" {
+		if err := this.redis.SetGroups(sock); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (this *Storage) UnsetGroups(sock *Socket) error {
+	this.pageMu.Lock()
+	this.memory.UnsetGroups(sock)
+	this.pageMu.Unlock()
+
+	if this.StorageType == "redis" {
+		if err := this.redis.UnsetPage(sock); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (this *Storage) getGroups(groups []string) []map[string]*Socket {
+	defer this.pageMu.RUnlock()
+	this.pageMu.RLock()
+	return this.memory.getGroups(groups)
 }

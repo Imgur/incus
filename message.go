@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -42,7 +41,7 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 
 	switch strings.ToLower(command) {
 	case "message":
-		if !CLIENT_BROAD {
+		if !ClientBroadcast {
 			return
 		}
 
@@ -52,7 +51,6 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 		}
 
 		this.sendMessage(sock.Server)
-
 	case "setpage":
 		page, ok := this.Command["page"]
 		if !ok || page == "" {
@@ -65,6 +63,22 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 
 		sock.Page = page
 		sock.Server.Store.SetPage(sock) // set new page
+	case "setgroups":
+		grps, ok := this.Command["groups"]
+		grps = strings.TrimSpace(strings.Replace(grps, " ", "", -1))
+		groups := strings.Split(grps, ",")
+
+		if !ok || len(groups) == 0 {
+			return
+		}
+
+		// hack check for empty slice
+		if len(sock.Groups) != 0 {
+			sock.Server.Store.UnsetGroups(sock)
+		}
+
+		sock.Groups = groups
+		sock.Server.Store.SetGroups(sock)
 	case "setpresence":
 		active, ok := this.Message["presence"]
 
@@ -107,17 +121,14 @@ func (this *CommandMsg) FromRedis(server *Server) {
 
 	case "message":
 		this.sendMessage(server)
-
 	case "pushios":
 		if viper.GetBool("apns_enabled") {
 			this.pushiOS(server)
 		}
-
 	case "pushandroid":
 		if viper.GetBool("gcm_enabled") {
 			this.pushAndroid(server)
 		}
-
 	case "push":
 		if strings.ToLower(this.Command["push_type"]) == "ios" {
 			this.pushiOS(server)
@@ -173,10 +184,10 @@ func (this *CommandMsg) FromRedis(server *Server) {
 }
 
 func (this *CommandMsg) formatMessage() (*Message, error) {
-	event, e_ok := this.Message["event"].(string)
-	data, b_ok := this.Message["data"].(map[string]interface{})
+	event, eOk := this.Message["event"].(string)
+	data, bOk := this.Message["data"].(map[string]interface{})
 
-	if !b_ok || !e_ok {
+	if !bOk || !eOk {
 		return nil, errors.New("Could not format message")
 	}
 
@@ -187,8 +198,8 @@ func (this *CommandMsg) formatMessage() (*Message, error) {
 	}
 
 	// hack for bad version of Imgur iOS client
-	url, url_ok := data["internal_url"].(string)
-	if url_ok {
+	url, urlOk := data["internal_url"].(string)
+	if urlOk {
 		msg.Url = url
 	}
 
@@ -196,23 +207,36 @@ func (this *CommandMsg) formatMessage() (*Message, error) {
 }
 
 func (this *CommandMsg) sendMessage(server *Server) {
+	var allCheck bool
 	user, userok := this.Command["user"]
 	page, pageok := this.Command["page"]
 
 	// TODO: support only the 1 .. many users
 	users, usersok := this.Command["users"]
+	groups, groupsok := this.Command["groups"]
 
 	if usersok {
 		users = strings.TrimSpace(strings.Replace(users, " ", "", -1))
 		uIDS := strings.Split(users, ",")
-		fmt.Println(uIDS)
 		this.messageUsers(uIDS, page, server)
-	} else if userok {
-		// if userok {
+		allCheck = true
+	}
+	if userok {
 		this.messageUser(user, page, server)
-	} else if pageok {
+		allCheck = true
+	}
+	if pageok {
 		this.messagePage(page, server)
-	} else {
+		allCheck = true
+	}
+	if groupsok {
+		groups = strings.TrimSpace(strings.Replace(groups, " ", "", -1))
+		gs := strings.Split(groups, ",")
+		this.messageGroups(gs, server)
+		allCheck = true
+	}
+
+	if allCheck == false {
 		this.messageAll(server)
 	}
 }
@@ -461,7 +485,31 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 	return
 }
 
+func (this *CommandMsg) messageGroups(groups []string, server *Server) {
+	msg, err := this.formatMessage()
+	if err != nil {
+		return
+	}
+
+	server.Stats.LogPageMessage()
+
+	groupMap := server.Store.getGroups(groups)
+	if groupMap == nil {
+		return
+	}
+
+	for _, g := range groupMap {
+		for _, sock := range g {
+			if !sock.isClosed() {
+				sock.buff <- msg
+			}
+		}
+	}
+
+	return
+}
+
 func (this *CommandMsg) forwardToRedis(server *Server) {
-	msg_str, _ := json.Marshal(this)
-	server.Store.redis.Publish(viper.GetString("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster
+	message, _ := json.Marshal(this)
+	server.Store.redis.Publish(viper.GetString("redis_message_channel"), string(message)) //pass the message into redis to send message across cluster
 }

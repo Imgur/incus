@@ -1,6 +1,6 @@
 package incus
 
 var (
-	DEBUG        bool
-	CLIENT_BROAD bool
+	DEBUG           bool
+	ClientBroadcast bool
 )

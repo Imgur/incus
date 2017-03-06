@@ -13,6 +13,7 @@ import (
 const (
 	ClientsKey        = "SocketClients"
 	PageKey           = "PageClients"
+	GroupKey          = "GroupClients"
 	PresenceKeyPrefix = "ClientPresence"
 )
 
@@ -38,6 +39,7 @@ type (
 	RedisStore struct {
 		clientsKey        string
 		pageKey           string
+		groupKey          string
 		presenceKeyPrefix string
 		presenceDuration  int64
 
@@ -80,6 +82,7 @@ func newRedisStore(redisHost string, redisPort, numberOfActivityConsumers, connP
 		redisPendingQueue: redisPendingQueue,
 		clientsKey:        ClientsKey,
 		pageKey:           PageKey,
+		groupKey:          GroupKey,
 		presenceKeyPrefix: PresenceKeyPrefix,
 		presenceDuration:  60,
 		server:            redisHost,
@@ -248,9 +251,8 @@ func (this *RedisStore) GetIsLongpollKillswitchActive() (bool, error) {
 	if result.Error == nil {
 		if result.Value.(int64) >= -1 {
 			return true, nil
-		} else {
-			return false, nil
 		}
+		return false, nil
 	}
 
 	return false, timedOut
@@ -382,6 +384,45 @@ func (this *RedisStore) UnsetPage(sock *Socket) error {
 
 	if i <= 0 {
 		client.Do("HDEL", this.pageKey, sock.Page)
+	}
+
+	return nil
+}
+
+func (this *RedisStore) SetGroups(sock *Socket) error {
+	client, err := this.GetConn()
+	if err != nil {
+		return err
+	}
+	defer this.CloseConn(client)
+
+	for _, v := range sock.Groups {
+		_, err = client.Do("HINCRBY", this.groupKey, v, 1)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (this *RedisStore) UnsetGroups(sock *Socket) error {
+	client, err := this.GetConn()
+	if err != nil {
+		return err
+	}
+	defer this.CloseConn(client)
+
+	for _, v := range sock.Groups {
+		var i int64
+		i, err = redis.Int64(client.Do("HINCRBY", this.groupKey, v, -1))
+		if err != nil {
+			return err
+		}
+
+		if i <= 0 {
+			client.Do("HDEL", this.groupKey, v)
+		}
 	}
 
 	return nil

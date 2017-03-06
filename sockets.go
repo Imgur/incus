@@ -47,7 +47,7 @@ type Socket struct {
 	Page string // Current page, if set.
 
 	// TODO add in group authentication (This will be able to work like people can be assigned to many groups)
-	// Group []string // Users can have assigned groups
+	Groups []string // Users can have assigned groups
 
 	ws     *websocket.Conn
 	lp     http.ResponseWriter
@@ -73,6 +73,7 @@ func (this *Socket) isClosed() bool {
 	return this.closed
 }
 
+// TODO fix to remove groups on users
 func (this *Socket) Close() error {
 	this.lock.Lock()
 	defer this.lock.Unlock()

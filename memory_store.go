@@ -5,6 +5,7 @@ import "errors"
 type MemoryStore struct {
 	clients map[string]map[string]*Socket
 	pages   map[string]map[string]*Socket
+	groups  map[string]map[string]*Socket
 
 	clientCount int64
 }
@@ -105,4 +106,56 @@ func (this *MemoryStore) getPage(page string) map[string]*Socket {
 	}
 
 	return p
+}
+
+func (this *MemoryStore) SetGroups(sock *Socket) error {
+	for _, v := range sock.Groups {
+		group, exists := this.groups[v]
+		if !exists {
+			groupMap := make(map[string]*Socket)
+			groupMap[sock.SID] = sock
+			this.groups[v] = groupMap
+
+			return nil
+		}
+
+		group[sock.SID] = sock
+	}
+
+	return nil
+}
+
+func (this *MemoryStore) UnsetGroups(sock *Socket) error {
+	for _, v := range sock.Groups {
+		group, exists := this.groups[v]
+		if !exists {
+			return nil
+		}
+
+		delete(group, sock.SID)
+
+		if len(group) == 0 {
+			delete(this.groups, v)
+		}
+	}
+
+	return nil
+}
+
+func (this *MemoryStore) getGroups(groups []string) []map[string]*Socket {
+	var gs []map[string]*Socket
+	for _, v := range groups {
+		var g, exists = this.groups[v]
+
+		if !exists {
+			continue
+		}
+		gs = append(gs, g)
+	}
+
+	if len(gs) > 0 {
+		return gs
+	}
+
+	return nil
 }
