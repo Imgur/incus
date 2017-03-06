@@ -64,8 +64,8 @@ type DatadogStats struct {
 }
 
 func NewDatadogStats(datadogHost string) (*DatadogStats, error) {
-	var ip net.IP = nil
-	var err error = nil
+	var ip net.IP
+	var err error
 
 	// Assume datadogHost is an IP and try to parse it
 	ip = net.ParseIP(datadogHost)

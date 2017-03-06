@@ -13,7 +13,7 @@ func NewConfig(configFilePath string) {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		panic(fmt.Errorf("fatal error config file: %s", err))
 	}
 
 	ConfigOption("client_broadcasts", true)
@@ -92,6 +92,6 @@ func fileOption(key string) {
 	chosenValue := viper.GetString(key)
 
 	if _, err := os.Stat(chosenValue); err != nil {
-		panic(fmt.Errorf("Chosen option %s does not exist!", chosenValue))
+		panic(fmt.Errorf("chosen option %s does not exist", chosenValue))
 	}
 }

@@ -1,11 +1,15 @@
 package incus
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/alexjlockwood/gcm"
 	apns "github.com/anachronistic/apns"
@@ -195,7 +199,16 @@ func (this *CommandMsg) sendMessage(server *Server) {
 	user, userok := this.Command["user"]
 	page, pageok := this.Command["page"]
 
-	if userok {
+	// TODO: support only the 1 .. many users
+	users, usersok := this.Command["users"]
+
+	if usersok {
+		users = strings.TrimSpace(strings.Replace(users, " ", "", -1))
+		uIDS := strings.Split(users, ",")
+		fmt.Println(uIDS)
+		this.messageUsers(uIDS, page, server)
+	} else if userok {
+		// if userok {
 		this.messageUser(user, page, server)
 	} else if pageok {
 		this.messagePage(page, server)
@@ -336,6 +349,74 @@ func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
 			}
 		}
 	}
+}
+
+func (this *CommandMsg) messageUsers(UIDS []string, page string, server *Server) {
+	msg, err := this.formatMessage()
+	if err != nil {
+		if DEBUG {
+			log.Printf("Error formatting message: %s", err.Error())
+		}
+		return
+	}
+
+	g, ctx := errgroup.WithContext(context.TODO())
+	uc := make(chan map[string]*Socket)
+
+	g.Go(func() error {
+		defer close(uc)
+
+		for _, u := range UIDS {
+			user, err := server.Store.Client(u)
+			if err != nil {
+				if DEBUG {
+					log.Printf("Skipping UID %s because %s", u, err.Error())
+				}
+				return err
+			}
+
+			server.Stats.LogUserMessage()
+
+			select {
+			case uc <- user:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+
+		return nil
+	})
+
+	g.Go(func() error {
+		for u := range uc {
+			for _, sock := range u {
+				if page != "" && page != sock.Page {
+					if DEBUG {
+						log.Printf("Skipping given page %s != %s", page, sock.Page)
+					}
+
+					continue
+				}
+
+				if !sock.isClosed() {
+					sock.buff <- msg
+				} else {
+					if DEBUG {
+						log.Printf("Skipping because closed")
+					}
+				}
+			}
+
+			select {
+			default:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+		return nil
+	})
+
+	return
 }
 
 func (this *CommandMsg) messageAll(server *Server) {

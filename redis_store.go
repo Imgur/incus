@@ -10,9 +10,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-const ClientsKey = "SocketClients"
-const PageKey = "PageClients"
-const PresenceKeyPrefix = "ClientPresence"
+const (
+	ClientsKey        = "SocketClients"
+	PageKey           = "PageClients"
+	PresenceKeyPrefix = "ClientPresence"
+)
 
 var timedOut = errors.New("Timed out waiting for Redis")
 
