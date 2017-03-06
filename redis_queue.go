@@ -1,11 +1,13 @@
 package incus
 
-import "container/list"
-import "sync"
-import "log"
-import "time"
+import (
+	"container/list"
+	"log"
+	"sync"
+	"time"
+)
 
-// A queue of redis commands
+// RedisQueue struct for a queue of redis commands
 type RedisQueue struct {
 	incoming chan RedisCommand
 	outgoing chan RedisCommand
@@ -63,7 +65,7 @@ func (r *RedisQueue) RunAsyncTimeout(timeout time.Duration, callback RedisCallba
 	}
 }
 
-// Receive a command, save/enqueue it, and wake the dispatching goroutine
+// ReceiveForever receives a command, save/enqueue it, and wake the dispatching goroutine
 func (r *RedisQueue) ReceiveForever() {
 	for {
 		command := <-r.incoming
@@ -76,13 +78,13 @@ func (r *RedisQueue) ReceiveForever() {
 	}
 }
 
-// Dispatch a command to a goroutine that is blocking on receiving a command.
+// DispatchForever dispatches a command to a goroutine that is blocking on receiving a command.
 func (r *RedisQueue) DispatchForever() {
 	for {
 		r.pendingCond.L.Lock()
 
 		var pendingLength int
-		var front *list.Element = nil
+		var front *list.Element
 
 		for {
 			r.pendingListLock.Lock()
