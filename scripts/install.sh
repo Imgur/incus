@@ -1,6 +1,6 @@
 #!/bin/bash
 
-GOPROJ=$GOPATH/src/github.com/jtaylor32/incus
+GOPROJ=$GOPATH/src/github.com/Imgur/incus
 
 cp $GOPROJ/scripts/initd.sh /etc/init.d/incus
 

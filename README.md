@@ -213,7 +213,7 @@ sudo /etc/init.d/incus restart
 ## Configuration
 Incus needs to be restarted after any configuration change.
 
-#### ClientBroadcast
+#### CLIENT_BROADCASTS
 
 **true**
 > Clients may send messages to other clients

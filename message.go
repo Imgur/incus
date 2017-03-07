@@ -211,7 +211,6 @@ func (this *CommandMsg) sendMessage(server *Server) {
 	user, userok := this.Command["user"]
 	page, pageok := this.Command["page"]
 
-	// TODO: support only the 1 .. many users
 	users, usersok := this.Command["users"]
 	groups, groupsok := this.Command["groups"]
 
@@ -235,7 +234,6 @@ func (this *CommandMsg) sendMessage(server *Server) {
 		this.messageGroups(gs, server)
 		allCheck = true
 	}
-
 	if allCheck == false {
 		this.messageAll(server)
 	}
@@ -295,9 +293,9 @@ func (this *CommandMsg) pushiOS(server *Server) {
 }
 
 func (this *CommandMsg) pushAndroid(server *Server) {
-	registration_ids, registration_ids_ok := this.Command["registration_ids"]
+	registrationIds, registrationIdsOk := this.Command["registration_ids"]
 
-	if !registration_ids_ok {
+	if !registrationIdsOk {
 		log.Println("Registration ID(s) not provided!")
 		return
 	}
@@ -310,7 +308,7 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 
 	data := map[string]interface{}{"event": msg.Event, "data": msg.Data, "time": msg.Time}
 
-	regIDs := strings.Split(registration_ids, ",")
+	regIDs := strings.Split(registrationIds, ",")
 	gcmMessage := gcm.NewMessage(data, regIDs...)
 
 	sender := server.GetGCMClient()
@@ -332,8 +330,8 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 
 		failurePayload := map[string]interface{}{"registration_ids": regIDs, "results": gcmResponse.Results}
 
-		msg_str, _ := json.Marshal(failurePayload)
-		server.Store.redis.Push(viper.GetString("android_error_queue"), string(msg_str))
+		msgStr, _ := json.Marshal(failurePayload)
+		server.Store.redis.Push(viper.GetString("android_error_queue"), string(msgStr))
 	}
 }
 
@@ -491,14 +489,14 @@ func (this *CommandMsg) messageGroups(groups []string, server *Server) {
 		return
 	}
 
-	server.Stats.LogPageMessage()
-
-	groupMap := server.Store.getGroups(groups)
-	if groupMap == nil {
+	groupList := server.Store.getGroups(groups)
+	if groupList == nil {
 		return
 	}
 
-	for _, g := range groupMap {
+	server.Stats.LogGroupsMessage(len(groupList))
+
+	for _, g := range groupList {
 		for _, sock := range g {
 			if !sock.isClosed() {
 				sock.buff <- msg
