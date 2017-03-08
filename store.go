@@ -136,13 +136,13 @@ func (this *Storage) getPage(page string) map[string]*Socket {
 	return this.memory.getPage(page)
 }
 
-func (this *Storage) SetGroups(sock *Socket) error {
+func (this *Storage) SetGroup(sock *Socket) error {
 	this.groupsMu.Lock()
-	this.memory.SetGroups(sock)
+	this.memory.SetGroup(sock)
 	this.groupsMu.Unlock()
 
 	if this.StorageType == "redis" {
-		if err := this.redis.SetGroups(sock); err != nil {
+		if err := this.redis.SetGroup(sock); err != nil {
 			return err
 		}
 	}
@@ -150,13 +150,13 @@ func (this *Storage) SetGroups(sock *Socket) error {
 	return nil
 }
 
-func (this *Storage) UnsetGroups(sock *Socket) error {
+func (this *Storage) UnsetGroup(sock *Socket) error {
 	this.groupsMu.Lock()
-	this.memory.UnsetGroups(sock)
+	this.memory.UnsetGroup(sock)
 	this.groupsMu.Unlock()
 
 	if this.StorageType == "redis" {
-		if err := this.redis.UnsetGroups(sock); err != nil {
+		if err := this.redis.UnsetGroup(sock); err != nil {
 			return err
 		}
 	}
@@ -164,9 +164,9 @@ func (this *Storage) UnsetGroups(sock *Socket) error {
 	return nil
 }
 
-func (this *Storage) getGroups(groups []string) []map[string]*Socket {
+func (this *Storage) getGroup(group string) map[string]*Socket {
 	this.groupsMu.RLock()
 	defer this.groupsMu.RUnlock()
 
-	return this.memory.getGroups(groups)
+	return this.memory.getGroup(group)
 }

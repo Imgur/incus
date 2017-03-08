@@ -47,7 +47,7 @@ type Socket struct {
 	Page string // Current page, if set.
 
 	// TODO add in group authentication (This will be able to work like people can be assigned to many groups)
-	Groups []string // Users can have assigned groups
+	Group string // Users can have assigned a group
 
 	ws     *websocket.Conn
 	lp     http.ResponseWriter

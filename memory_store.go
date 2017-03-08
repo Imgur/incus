@@ -108,54 +108,42 @@ func (this *MemoryStore) getPage(page string) map[string]*Socket {
 	return p
 }
 
-func (this *MemoryStore) SetGroups(sock *Socket) error {
-	for _, v := range sock.Groups {
-		group, exists := this.groups[v]
-		if !exists {
-			groupMap := make(map[string]*Socket)
-			groupMap[sock.SID] = sock
-			this.groups[v] = groupMap
+func (this *MemoryStore) SetGroup(sock *Socket) error {
+	group, exists := this.groups[sock.Page]
+	if !exists {
+		groupMap := make(map[string]*Socket)
+		groupMap[sock.SID] = sock
+		this.groups[sock.Group] = groupMap
 
-			return nil
-		}
+		return nil
+	}
 
-		group[sock.SID] = sock
+	group[sock.SID] = sock
+
+	return nil
+}
+
+func (this *MemoryStore) UnsetGroup(sock *Socket) error {
+	group, exists := this.groups[sock.Group]
+	if !exists {
+		return nil
+	}
+
+	delete(group, sock.SID)
+
+	if len(group) == 0 {
+		delete(this.groups, sock.Group)
 	}
 
 	return nil
 }
 
-func (this *MemoryStore) UnsetGroups(sock *Socket) error {
-	for _, v := range sock.Groups {
-		group, exists := this.groups[v]
-		if !exists {
-			return nil
-		}
+func (this *MemoryStore) getGroup(group string) map[string]*Socket {
+	var g, exists = this.groups[group]
 
-		delete(group, sock.SID)
-
-		if len(group) == 0 {
-			delete(this.groups, v)
-		}
+	if !exists {
+		return nil
 	}
 
-	return nil
-}
-
-func (this *MemoryStore) getGroups(groups []string) []map[string]*Socket {
-	var gs []map[string]*Socket
-	for _, v := range groups {
-		var g, exists = this.groups[v]
-
-		if !exists {
-			continue
-		}
-		gs = append(gs, g)
-	}
-
-	if len(gs) > 0 {
-		return gs
-	}
-
-	return nil
+	return g
 }

@@ -13,7 +13,7 @@ type RuntimeStats interface {
 	LogGoroutines(int)
 
 	LogCommand(from, cmdType string)
-	LogGroupsMessage(int)
+	LogGroupMessage()
 	LogPageMessage()
 	LogUserMessage()
 	LogBroadcastMessage()
@@ -110,9 +110,9 @@ func (d *DatadogStats) LogCommand(from, cmdType string) {
 	d.dog.Incr("incus.command."+from+"."+cmdType, nil)
 }
 
-func (d *DatadogStats) LogGroupMessage(groups int) {
+func (d *DatadogStats) LogGroupMessage() {
 	d.dog.Incr("incus.message", nil)
-	d.dog.Gauge("incus.message.groups_count", float64(groups), nil)
+	d.dog.Incr("incus.message.group", nil)
 }
 
 func (d *DatadogStats) LogPageMessage() {

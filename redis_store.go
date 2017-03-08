@@ -389,40 +389,36 @@ func (this *RedisStore) UnsetPage(sock *Socket) error {
 	return nil
 }
 
-func (this *RedisStore) SetGroups(sock *Socket) error {
+func (this *RedisStore) SetGroup(sock *Socket) error {
 	client, err := this.GetConn()
 	if err != nil {
 		return err
 	}
 	defer this.CloseConn(client)
 
-	for _, v := range sock.Groups {
-		_, err = client.Do("HINCRBY", this.groupKey, v, 1)
-		if err != nil {
-			return err
-		}
+	_, err = client.Do("HINCRBY", this.groupKey, sock.Group, 1)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (this *RedisStore) UnsetGroups(sock *Socket) error {
+func (this *RedisStore) UnsetGroup(sock *Socket) error {
 	client, err := this.GetConn()
 	if err != nil {
 		return err
 	}
 	defer this.CloseConn(client)
 
-	for _, v := range sock.Groups {
-		var i int64
-		i, err = redis.Int64(client.Do("HINCRBY", this.groupKey, v, -1))
-		if err != nil {
-			return err
-		}
+	var i int64
+	i, err = redis.Int64(client.Do("HINCRBY", this.groupKey, sock.Group, -1))
+	if err != nil {
+		return err
+	}
 
-		if i <= 0 {
-			client.Do("HDEL", this.groupKey, v)
-		}
+	if i <= 0 {
+		client.Do("HDEL", this.groupKey, sock.Group)
 	}
 
 	return nil

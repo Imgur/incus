@@ -63,22 +63,18 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 
 		sock.Page = page
 		sock.Server.Store.SetPage(sock) // set new page
-	case "setgroups":
-		grps, ok := this.Command["groups"]
-		grps = strings.TrimSpace(strings.Replace(grps, " ", "", -1))
-		groups := strings.Split(grps, ",")
-
-		if !ok || len(groups) == 0 {
+	case "setgroup":
+		group, ok := this.Command["group"]
+		if !ok || group == "" {
 			return
 		}
 
-		// hack check for empty slice
-		if len(sock.Groups) != 0 {
-			sock.Server.Store.UnsetGroups(sock)
+		if sock.Group != "" {
+			sock.Server.Store.UnsetGroup(sock)
 		}
 
-		sock.Groups = groups
-		sock.Server.Store.SetGroups(sock)
+		sock.Group = group
+		sock.Server.Store.SetGroup(sock)
 	case "setpresence":
 		active, ok := this.Message["presence"]
 
@@ -210,6 +206,7 @@ func (this *CommandMsg) sendMessage(server *Server) {
 	var allCheck bool
 	user, userok := this.Command["user"]
 	page, pageok := this.Command["page"]
+	group, groupok := this.Command["group"]
 
 	users, usersok := this.Command["users"]
 	groups, groupsok := this.Command["groups"]
@@ -226,6 +223,10 @@ func (this *CommandMsg) sendMessage(server *Server) {
 	}
 	if pageok {
 		this.messagePage(page, server)
+		allCheck = true
+	}
+	if groupok {
+		this.messageGroup(group, server)
 		allCheck = true
 	}
 	if groupsok {
@@ -483,25 +484,34 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 	return
 }
 
-func (this *CommandMsg) messageGroups(groups []string, server *Server) {
+func (this *CommandMsg) messageGroup(group string, server *Server) {
 	msg, err := this.formatMessage()
 	if err != nil {
 		return
 	}
 
-	groupList := server.Store.getGroups(groups)
-	if groupList == nil {
+	server.Stats.LogGroupMessage()
+
+	groupMap := server.Store.getGroup(group)
+	if groupMap == nil {
+		if DEBUG {
+			log.Printf("Skipping given %s because Group doesn't exist", group)
+		}
 		return
 	}
 
-	server.Stats.LogGroupsMessage(len(groupList))
-
-	for _, g := range groupList {
-		for _, sock := range g {
-			if !sock.isClosed() {
-				sock.buff <- msg
-			}
+	for _, sock := range groupMap {
+		if !sock.isClosed() {
+			sock.buff <- msg
 		}
+	}
+
+	return
+}
+
+func (this *CommandMsg) messageGroups(groups []string, server *Server) {
+	for _, grp := range groups {
+		this.messageGroup(grp, server)
 	}
 
 	return
