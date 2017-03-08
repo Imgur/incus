@@ -1,5 +1,4 @@
-FROM golang:1.5
-
+FROM golang:1.8
 RUN mkdir /etc/incus
 
 ADD . /go/src/github.com/Imgur/incus

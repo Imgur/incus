@@ -1,8 +1,9 @@
 package incus
 
 import (
-	"github.com/PagerDuty/godspeed"
 	"net"
+
+	"github.com/PagerDuty/godspeed"
 )
 
 type RuntimeStats interface {
@@ -12,6 +13,7 @@ type RuntimeStats interface {
 	LogGoroutines(int)
 
 	LogCommand(from, cmdType string)
+	LogGroupMessage()
 	LogPageMessage()
 	LogUserMessage()
 	LogBroadcastMessage()
@@ -39,8 +41,9 @@ type DiscardStats struct{}
 
 func (d *DiscardStats) LogStartup()                                   {}
 func (d *DiscardStats) LogClientCount(int64)                          {}
-func (d *DiscardStats) LogGoroutines(int)                          {}
+func (d *DiscardStats) LogGoroutines(int)                             {}
 func (d *DiscardStats) LogCommand(from, cmdType string)               {}
+func (d *DiscardStats) LogGroupMessage()                              {}
 func (d *DiscardStats) LogPageMessage()                               {}
 func (d *DiscardStats) LogUserMessage()                               {}
 func (d *DiscardStats) LogBroadcastMessage()                          {}
@@ -63,8 +66,8 @@ type DatadogStats struct {
 }
 
 func NewDatadogStats(datadogHost string) (*DatadogStats, error) {
-	var ip net.IP = nil
-	var err error = nil
+	var ip net.IP
+	var err error
 
 	// Assume datadogHost is an IP and try to parse it
 	ip = net.ParseIP(datadogHost)
@@ -105,6 +108,11 @@ func (d *DatadogStats) LogCommand(from, cmdType string) {
 	d.dog.Incr("incus.command."+from, nil)
 	d.dog.Incr("incus.command."+cmdType, nil)
 	d.dog.Incr("incus.command."+from+"."+cmdType, nil)
+}
+
+func (d *DatadogStats) LogGroupMessage() {
+	d.dog.Incr("incus.message", nil)
+	d.dog.Incr("incus.message.group", nil)
 }
 
 func (d *DatadogStats) LogPageMessage() {

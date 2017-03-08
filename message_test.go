@@ -1,10 +1,13 @@
 package incus
 
-import "encoding/json"
-import "testing"
-import "github.com/alexjlockwood/gcm"
-import apns "github.com/anachronistic/apns"
-import mock "github.com/stretchr/testify/mock"
+import (
+	"encoding/json"
+	"testing"
+
+	"github.com/alexjlockwood/gcm"
+	apns "github.com/anachronistic/apns"
+	mock "github.com/stretchr/testify/mock"
+)
 
 func TestAPNS(t *testing.T) {
 

@@ -46,6 +46,9 @@ type Socket struct {
 	UID  string // User ID, passed in via client
 	Page string // Current page, if set.
 
+	// TODO add in group authentication (This will be able to work like people can be assigned to many groups)
+	Group string // Users can have assigned a group
+
 	ws     *websocket.Conn
 	lp     http.ResponseWriter
 	Server *Server
@@ -70,6 +73,7 @@ func (this *Socket) isClosed() bool {
 	return this.closed
 }
 
+// TODO fix to remove groups on users
 func (this *Socket) Close() error {
 	this.lock.Lock()
 	defer this.lock.Unlock()
@@ -106,18 +110,18 @@ func (this *Socket) Authenticate(UID string) error {
 
 		command := message.Command["command"]
 		if strings.ToLower(command) != "authenticate" {
-			return errors.New("Error: Authenticate Expected.\n")
+			return errors.New("error: authenticate expected")
 		}
 
 		var ok bool
 		UID, ok = message.Command["user"]
 		if !ok {
-			return errors.New("Error on Authenticate: Bad Input.\n")
+			return errors.New("error on authenticate: bad input")
 		}
 	}
 
 	if UID == "" {
-		return errors.New("Error on Authenticate: Bad Input.\n")
+		return errors.New("error on authenticate: bad input")
 	}
 
 	if DEBUG {
@@ -171,9 +175,9 @@ func (this *Socket) listenForWrites() {
 				this.ws.SetWriteDeadline(time.Now().Add(writeWait))
 				err = this.ws.WriteJSON(message)
 			} else {
-				json_str, _ := json.Marshal(message)
+				jsonStr, _ := json.Marshal(message)
 
-				_, err = fmt.Fprint(this.lp, string(json_str))
+				_, err = fmt.Fprint(this.lp, string(jsonStr))
 			}
 
 			this.Server.Stats.LogWriteMessage()

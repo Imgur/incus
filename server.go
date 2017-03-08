@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync/atomic"
 	"syscall"
 	"time"
-	"runtime"
 
 	"github.com/alexjlockwood/gcm"
 	apns "github.com/anachronistic/apns"

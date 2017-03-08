@@ -1,11 +1,14 @@
 package incus
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
 	"strings"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/alexjlockwood/gcm"
 	apns "github.com/anachronistic/apns"
@@ -38,7 +41,7 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 
 	switch strings.ToLower(command) {
 	case "message":
-		if !CLIENT_BROAD {
+		if !ClientBroadcast {
 			return
 		}
 
@@ -48,7 +51,6 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 		}
 
 		this.sendMessage(sock.Server)
-
 	case "setpage":
 		page, ok := this.Command["page"]
 		if !ok || page == "" {
@@ -61,6 +63,18 @@ func (this *CommandMsg) FromSocket(sock *Socket) {
 
 		sock.Page = page
 		sock.Server.Store.SetPage(sock) // set new page
+	case "setgroup":
+		group, ok := this.Command["group"]
+		if !ok || group == "" {
+			return
+		}
+
+		if sock.Group != "" {
+			sock.Server.Store.UnsetGroup(sock)
+		}
+
+		sock.Group = group
+		sock.Server.Store.SetGroup(sock)
 	case "setpresence":
 		active, ok := this.Message["presence"]
 
@@ -103,17 +117,14 @@ func (this *CommandMsg) FromRedis(server *Server) {
 
 	case "message":
 		this.sendMessage(server)
-
 	case "pushios":
 		if viper.GetBool("apns_enabled") {
 			this.pushiOS(server)
 		}
-
 	case "pushandroid":
 		if viper.GetBool("gcm_enabled") {
 			this.pushAndroid(server)
 		}
-
 	case "push":
 		if strings.ToLower(this.Command["push_type"]) == "ios" {
 			this.pushiOS(server)
@@ -169,10 +180,10 @@ func (this *CommandMsg) FromRedis(server *Server) {
 }
 
 func (this *CommandMsg) formatMessage() (*Message, error) {
-	event, e_ok := this.Message["event"].(string)
-	data, b_ok := this.Message["data"].(map[string]interface{})
+	event, eOk := this.Message["event"].(string)
+	data, bOk := this.Message["data"].(map[string]interface{})
 
-	if !b_ok || !e_ok {
+	if !bOk || !eOk {
 		return nil, errors.New("Could not format message")
 	}
 
@@ -183,8 +194,8 @@ func (this *CommandMsg) formatMessage() (*Message, error) {
 	}
 
 	// hack for bad version of Imgur iOS client
-	url, url_ok := data["internal_url"].(string)
-	if url_ok {
+	url, urlOk := data["internal_url"].(string)
+	if urlOk {
 		msg.Url = url
 	}
 
@@ -192,14 +203,39 @@ func (this *CommandMsg) formatMessage() (*Message, error) {
 }
 
 func (this *CommandMsg) sendMessage(server *Server) {
+	var allCheck bool
 	user, userok := this.Command["user"]
 	page, pageok := this.Command["page"]
+	group, groupok := this.Command["group"]
 
+	users, usersok := this.Command["users"]
+	groups, groupsok := this.Command["groups"]
+
+	if usersok {
+		users = strings.TrimSpace(strings.Replace(users, " ", "", -1))
+		uIDS := strings.Split(users, ",")
+		this.messageUsers(uIDS, page, server)
+		allCheck = true
+	}
 	if userok {
 		this.messageUser(user, page, server)
-	} else if pageok {
+		allCheck = true
+	}
+	if pageok {
 		this.messagePage(page, server)
-	} else {
+		allCheck = true
+	}
+	if groupok {
+		this.messageGroup(group, server)
+		allCheck = true
+	}
+	if groupsok {
+		groups = strings.TrimSpace(strings.Replace(groups, " ", "", -1))
+		gs := strings.Split(groups, ",")
+		this.messageGroups(gs, server)
+		allCheck = true
+	}
+	if allCheck == false {
 		this.messageAll(server)
 	}
 }
@@ -258,9 +294,9 @@ func (this *CommandMsg) pushiOS(server *Server) {
 }
 
 func (this *CommandMsg) pushAndroid(server *Server) {
-	registration_ids, registration_ids_ok := this.Command["registration_ids"]
+	registrationIds, registrationIdsOk := this.Command["registration_ids"]
 
-	if !registration_ids_ok {
+	if !registrationIdsOk {
 		log.Println("Registration ID(s) not provided!")
 		return
 	}
@@ -273,7 +309,7 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 
 	data := map[string]interface{}{"event": msg.Event, "data": msg.Data, "time": msg.Time}
 
-	regIDs := strings.Split(registration_ids, ",")
+	regIDs := strings.Split(registrationIds, ",")
 	gcmMessage := gcm.NewMessage(data, regIDs...)
 
 	sender := server.GetGCMClient()
@@ -295,8 +331,8 @@ func (this *CommandMsg) pushAndroid(server *Server) {
 
 		failurePayload := map[string]interface{}{"registration_ids": regIDs, "results": gcmResponse.Results}
 
-		msg_str, _ := json.Marshal(failurePayload)
-		server.Store.redis.Push(viper.GetString("android_error_queue"), string(msg_str))
+		msgStr, _ := json.Marshal(failurePayload)
+		server.Store.redis.Push(viper.GetString("android_error_queue"), string(msgStr))
 	}
 }
 
@@ -336,6 +372,74 @@ func (this *CommandMsg) messageUser(UID string, page string, server *Server) {
 			}
 		}
 	}
+}
+
+func (this *CommandMsg) messageUsers(UIDS []string, page string, server *Server) {
+	msg, err := this.formatMessage()
+	if err != nil {
+		if DEBUG {
+			log.Printf("Error formatting message: %s", err.Error())
+		}
+		return
+	}
+
+	g, ctx := errgroup.WithContext(context.TODO())
+	uc := make(chan map[string]*Socket)
+
+	g.Go(func() error {
+		defer close(uc)
+
+		for _, u := range UIDS {
+			user, err := server.Store.Client(u)
+			if err != nil {
+				if DEBUG {
+					log.Printf("Skipping UID %s because %s", u, err.Error())
+				}
+				return err
+			}
+
+			server.Stats.LogUserMessage()
+
+			select {
+			case uc <- user:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+
+		return nil
+	})
+
+	g.Go(func() error {
+		for u := range uc {
+			for _, sock := range u {
+				if page != "" && page != sock.Page {
+					if DEBUG {
+						log.Printf("Skipping given page %s != %s", page, sock.Page)
+					}
+
+					continue
+				}
+
+				if !sock.isClosed() {
+					sock.buff <- msg
+				} else {
+					if DEBUG {
+						log.Printf("Skipping because closed")
+					}
+				}
+			}
+
+			select {
+			default:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+		return nil
+	})
+
+	return
 }
 
 func (this *CommandMsg) messageAll(server *Server) {
@@ -380,7 +484,40 @@ func (this *CommandMsg) messagePage(page string, server *Server) {
 	return
 }
 
+func (this *CommandMsg) messageGroup(group string, server *Server) {
+	msg, err := this.formatMessage()
+	if err != nil {
+		return
+	}
+
+	server.Stats.LogGroupMessage()
+
+	groupMap := server.Store.getGroup(group)
+	if groupMap == nil {
+		if DEBUG {
+			log.Printf("Skipping given %s because Group doesn't exist", group)
+		}
+		return
+	}
+
+	for _, sock := range groupMap {
+		if !sock.isClosed() {
+			sock.buff <- msg
+		}
+	}
+
+	return
+}
+
+func (this *CommandMsg) messageGroups(groups []string, server *Server) {
+	for _, grp := range groups {
+		this.messageGroup(grp, server)
+	}
+
+	return
+}
+
 func (this *CommandMsg) forwardToRedis(server *Server) {
-	msg_str, _ := json.Marshal(this)
-	server.Store.redis.Publish(viper.GetString("redis_message_channel"), string(msg_str)) //pass the message into redis to send message across cluster
+	message, _ := json.Marshal(this)
+	server.Store.redis.Publish(viper.GetString("redis_message_channel"), string(message)) //pass the message into redis to send message across cluster
 }

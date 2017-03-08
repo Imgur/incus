@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Imgur/incus"
-	"github.com/garyburd/redigo/redis"
 	"io/ioutil"
 	"log"
 	"net"
@@ -13,6 +11,9 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/Imgur/incus"
+	"github.com/garyburd/redigo/redis"
 )
 
 var (

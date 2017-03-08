@@ -11,8 +11,9 @@ type Storage struct {
 	redis       *RedisStore
 	StorageType string
 
-	userMu sync.RWMutex
-	pageMu sync.RWMutex
+	userMu   sync.RWMutex
+	pageMu   sync.RWMutex
+	groupsMu sync.RWMutex
 }
 
 func NewStore(stats RuntimeStats) *Storage {
@@ -30,10 +31,11 @@ func NewStore(stats RuntimeStats) *Storage {
 	}
 
 	var Store = Storage{
-		&MemoryStore{make(map[string]map[string]*Socket), make(map[string]map[string]*Socket), 0},
+		&MemoryStore{make(map[string]map[string]*Socket), make(map[string]map[string]*Socket), make(map[string]map[string]*Socket), 0},
 		redisStore,
 		storeType,
 
+		sync.RWMutex{},
 		sync.RWMutex{},
 		sync.RWMutex{},
 	}
@@ -70,15 +72,15 @@ func (this *Storage) Remove(sock *Socket) error {
 }
 
 func (this *Storage) Client(UID string) (map[string]*Socket, error) {
-	defer this.userMu.RUnlock()
 	this.userMu.RLock()
+	defer this.userMu.RUnlock()
 
 	return this.memory.Client(UID)
 }
 
 func (this *Storage) Clients() map[string]map[string]*Socket {
-	defer this.userMu.RUnlock()
 	this.userMu.RLock()
+	defer this.userMu.RUnlock()
 
 	return this.memory.Clients()
 }
@@ -128,7 +130,43 @@ func (this *Storage) UnsetPage(sock *Socket) error {
 }
 
 func (this *Storage) getPage(page string) map[string]*Socket {
-	defer this.pageMu.RUnlock()
 	this.pageMu.RLock()
+	defer this.pageMu.RUnlock()
+
 	return this.memory.getPage(page)
+}
+
+func (this *Storage) SetGroup(sock *Socket) error {
+	this.groupsMu.Lock()
+	this.memory.SetGroup(sock)
+	this.groupsMu.Unlock()
+
+	if this.StorageType == "redis" {
+		if err := this.redis.SetGroup(sock); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (this *Storage) UnsetGroup(sock *Socket) error {
+	this.groupsMu.Lock()
+	this.memory.UnsetGroup(sock)
+	this.groupsMu.Unlock()
+
+	if this.StorageType == "redis" {
+		if err := this.redis.UnsetGroup(sock); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (this *Storage) getGroup(group string) map[string]*Socket {
+	this.groupsMu.RLock()
+	defer this.groupsMu.RUnlock()
+
+	return this.memory.getGroup(group)
 }

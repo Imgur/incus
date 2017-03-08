@@ -68,7 +68,7 @@ func main() {
 
 	store = incus.NewStore(stats)
 
-	incus.CLIENT_BROAD = viper.GetBool("client_broadcasts")
+	incus.ClientBroadcast = viper.GetBool("client_broadcasts")
 	server := incus.NewServer(store, stats)
 
 	go server.RecordStats(1 * time.Second)

@@ -10,44 +10,54 @@ import (
 	"github.com/spf13/viper"
 )
 
-const ClientsKey = "SocketClients"
-const PageKey = "PageClients"
-const PresenceKeyPrefix = "ClientPresence"
+const (
+	ClientsKey        = "SocketClients"
+	PageKey           = "PageClients"
+	GroupKey          = "GroupClients"
+	PresenceKeyPrefix = "ClientPresence"
+)
 
 var timedOut = errors.New("Timed out waiting for Redis")
 
-type RedisCallback (func(redis.Conn) (interface{}, error))
+type (
+	// RedisCallback type to interface redis connection with callback implementation
+	RedisCallback (func(redis.Conn) (interface{}, error))
 
-type RedisCommandResult struct {
-	Error error
-	Value interface{}
-}
+	// RedisCommandResult struct to model the redis callback with error/value
+	RedisCommandResult struct {
+		Error error
+		Value interface{}
+	}
 
-type RedisCommand struct {
-	Callback RedisCallback
-	Result   chan RedisCommandResult
-}
+	// RedisCommand struct to model messages from redis execution
+	RedisCommand struct {
+		Callback RedisCallback
+		Result   chan RedisCommandResult
+	}
 
-type RedisStore struct {
-	clientsKey        string
-	pageKey           string
-	presenceKeyPrefix string
-	presenceDuration  int64
+	// RedisStore struct to model the redis storage layer
+	RedisStore struct {
+		clientsKey        string
+		pageKey           string
+		groupKey          string
+		presenceKeyPrefix string
+		presenceDuration  int64
 
-	server                    string
-	port                      int
-	pool                      *redisPool
-	pollingFreq               time.Duration
-	incomingRedisActivityCmds chan RedisCommand
-	redisPendingQueue         *RedisQueue
-}
+		server                    string
+		port                      int
+		pool                      *redisPool
+		pollingFreq               time.Duration
+		incomingRedisActivityCmds chan RedisCommand
+		redisPendingQueue         *RedisQueue
+	}
 
-//connection pool implimentation
-type redisPool struct {
-	connections chan redis.Conn
-	maxIdle     int
-	connFn      func() (redis.Conn, error) // function to create new connection.
-}
+	//connection pool implimentation
+	redisPool struct {
+		connections chan redis.Conn
+		maxIdle     int
+		connFn      func() (redis.Conn, error) // function to create new connection.
+	}
+)
 
 func newRedisStore(redisHost string, redisPort, numberOfActivityConsumers, connPoolSize int, stats RuntimeStats) *RedisStore {
 
@@ -72,6 +82,7 @@ func newRedisStore(redisHost string, redisPort, numberOfActivityConsumers, connP
 		redisPendingQueue: redisPendingQueue,
 		clientsKey:        ClientsKey,
 		pageKey:           PageKey,
+		groupKey:          GroupKey,
 		presenceKeyPrefix: PresenceKeyPrefix,
 		presenceDuration:  60,
 		server:            redisHost,
@@ -240,9 +251,8 @@ func (this *RedisStore) GetIsLongpollKillswitchActive() (bool, error) {
 	if result.Error == nil {
 		if result.Value.(int64) >= -1 {
 			return true, nil
-		} else {
-			return false, nil
 		}
+		return false, nil
 	}
 
 	return false, timedOut
@@ -374,6 +384,41 @@ func (this *RedisStore) UnsetPage(sock *Socket) error {
 
 	if i <= 0 {
 		client.Do("HDEL", this.pageKey, sock.Page)
+	}
+
+	return nil
+}
+
+func (this *RedisStore) SetGroup(sock *Socket) error {
+	client, err := this.GetConn()
+	if err != nil {
+		return err
+	}
+	defer this.CloseConn(client)
+
+	_, err = client.Do("HINCRBY", this.groupKey, sock.Group, 1)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (this *RedisStore) UnsetGroup(sock *Socket) error {
+	client, err := this.GetConn()
+	if err != nil {
+		return err
+	}
+	defer this.CloseConn(client)
+
+	var i int64
+	i, err = redis.Int64(client.Do("HINCRBY", this.groupKey, sock.Group, -1))
+	if err != nil {
+		return err
+	}
+
+	if i <= 0 {
+		client.Do("HDEL", this.groupKey, sock.Group)
 	}
 
 	return nil
